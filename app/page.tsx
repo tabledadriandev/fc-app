@@ -54,7 +54,7 @@ export default function Home() {
       setEligibilityError(null)
 
       try {
-        const rawBalance = await getTokenBalance(address)
+        const rawBalance = await getTokenBalance(address as `0x${string}`)
         const { eurValue: value, tokenAmount, meetsRequirement } =
           await computeBalanceEurValue(rawBalance)
 
@@ -107,7 +107,7 @@ export default function Home() {
 
   const handleConnect = () => {
     if (!primaryConnector) return
-    connect({ connector: primaryConnector as injected.InjectedConnector })
+    connect({ connector: primaryConnector })
   }
 
   const handleJoinWhitelist = async () => {

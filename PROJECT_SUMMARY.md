@@ -1,77 +1,52 @@
-# Table d'Adrian Farcaster App - Project Summary
+# Table d'Adrian DeSci Whitelist dApp - Project Summary
 
 ## ✅ What's Been Built
 
-A complete, production-ready Farcaster mini app for Table d'Adrian's wellness brand.
+A single-page, token-gated DeSci whitelist dApp for Table d'Adrian's wellness brand.
 
 ### Core Features Implemented
 
 1. **Token Gating System**
-   - Checks if user holds 5M+ $tabledadrian tokens
-   - Real-time balance checking on Base network
-   - Progress display for users below threshold
+   - Checks if a connected wallet holds at least **€1 worth of $tabledadrian**
+   - Reads the ERC‑20 balance on Base via viem
+   - Fetches an approximate EUR price via a small pricing utility
 
-2. **Rewards System**
-   - Social engagement reward: 2M tokens for repost + follow
-   - Holder bonus: 2M tokens for holding 10M+ tokens
-   - Max 4M tokens per user
-   - Database tracking of all claims
+2. **DeSci Whitelist Flow (Single Page)**
+   - Wallet connect / disconnect UI (wagmi + injected connector)
+   - Live balance + estimated EUR value display
+   - Clear eligibility messaging for insufficient vs. eligible balances
+   - `Join DeSci Whitelist` button enabled only when requirements are met
 
-3. **Wellness Assessment**
-   - 5-question form (goal, challenges, lifestyle, dietary, conditions)
-   - Character limits and validation
-   - User-friendly UI with TailwindCSS
+3. **Whitelist Contract Integration**
+   - Minimal `DeSciWhitelist` Solidity contract scaffolded in `contracts/Whitelist.sol`
+   - Frontend wired to call `joinWhitelist()` via wagmi when a contract address is configured
+   - Support for checking whitelisted status if extended later
 
-4. **Personalized PDF Generation**
-   - 8-page comprehensive wellness plan
-   - Personalized based on user responses
-   - Includes: assessment, analysis, nutrition protocol, recipes, supplements, meal plan, lifestyle protocol, FAQ
-   - Professional formatting with PDFKit
-
-5. **IPFS Storage**
-   - PDFs uploaded to Pinata
-   - 24-hour expiry links
-   - Private, user-specific access
-
-6. **Farcaster Frame Integration**
-   - Full frame support with buttons
-   - Wallet connection
-   - User verification
-   - Frame navigation
-
-7. **Database (Supabase)**
-   - Users table (wallet, balance, assessments)
-   - Assessments table (all responses, PDF links)
-   - User rewards table (claim tracking)
+4. **DeSci Landing Experience**
+   - Hero section explaining DeSci and the role of $tabledadrian
+   - Requirement copy: “Hold at least €1 of $tabledadrian to join the whitelist”
+   - Visual states for: not connected, connected + checking, insufficient, eligible, whitelisted
+   - Footer with X, Farcaster, Base profile, and Telegram hub links
 
 ## 📁 Project Structure
 
 ```
 ├── app/
-│   ├── api/
-│   │   ├── frame/              # Main Farcaster frame endpoint
-│   │   ├── check-eligibility/  # Token balance check
-│   │   ├── check-rewards/      # Available rewards check
-│   │   ├── claim-reward/       # Claim rewards endpoint
-│   │   ├── generate-wellness-pdf/  # PDF generation
-│   │   ├── user-assessments/   # Get user's past plans
-│   │   ├── get-or-create-user/ # User management
-│   │   ├── create-assessment/  # Save assessment
-│   │   └── images/             # Frame images (SVG)
-│   ├── assessment/             # Assessment form page
-│   ├── plans/                  # View past plans
-│   └── page.tsx                # Home (redirects to frame)
-├── components/
-│   └── AssessmentForm.tsx     # Main assessment component
+│   ├── page.tsx                # Single-page DeSci whitelist dApp
+│   ├── layout.tsx              # Root layout + providers
+│   └── providers.tsx           # wagmi + React Query providers
+├── contracts/
+│   └── Whitelist.sol          # Minimal DeSciWhitelist contract
 ├── lib/
-│   ├── blockchain.ts           # Token balance & eligibility
-│   ├── farcaster.ts           # Farcaster API helpers
-│   ├── ipfs.ts                # Pinata IPFS upload
-│   ├── pdf-generator.ts       # PDF generation logic
-│   └── supabase.ts            # Database client
+│   ├── blockchain.ts           # Token balance + whitelist helpers (viem)
+│   ├── config.ts               # Chain, token, and contract config
+│   └── pricing.ts              # EUR pricing utility
+├── public/
+│   ├── manifest.json
+│   └── ta..PNG                # Brand logo used in header
 ├── supabase/
-│   ├── schema.sql             # Database schema
-│   └── functions.sql          # Helper functions
+│   ├── schema.sql             # Legacy schema (kept for reference)
+│   └── functions.sql
 └── Documentation files
 ```
 
@@ -79,46 +54,31 @@ A complete, production-ready Farcaster mini app for Table d'Adrian's wellness br
 
 - **Framework**: Next.js 14+ (App Router)
 - **Language**: TypeScript
-- **Database**: Supabase (PostgreSQL)
-- **Blockchain**: viem (Base network)
-- **IPFS**: Pinata
-- **PDF**: PDFKit
+- **Blockchain**: viem (Base network) + wagmi
 - **Styling**: TailwindCSS
-- **Farcaster**: @farcaster/frames.js
+- **Build tooling**: TypeScript, ESLint, PostCSS, Tailwind
 
 ## 🚀 Deployment Checklist
 
-- [ ] Set up Supabase project and run schema
-- [ ] Create Pinata account and get API keys
-- [ ] Register Farcaster app and get API key
-- [ ] Configure all environment variables
-- [ ] Deploy to Vercel (or preferred host)
-- [ ] Test frame on Warpcast
-- [ ] Test token gating with test wallet
-- [ ] Test rewards claiming
-- [ ] Test assessment form
-- [ ] Test PDF generation
-- [ ] Verify IPFS uploads
-- [ ] Set up reward distribution system
+- [ ] Set RPC + token address in `.env.local`
+- [ ] (Optional) Deploy `DeSciWhitelist` contract and set `NEXT_PUBLIC_WHITELIST_CONTRACT_ADDRESS`
+- [ ] Deploy the Next.js app to Vercel (or preferred host)
+- [ ] Test wallet connection on Base
+- [ ] Test eligibility states with wallets above/below the €1 threshold
+- [ ] Test whitelist join transaction end‑to‑end
 
 ## 📝 Next Steps (Optional Enhancements)
 
-1. **Social Verification**: Implement actual Farcaster API calls for repost/follow checking (currently placeholder)
-2. **AI Integration**: Use GPT-4/Claude for more personalized PDF content
-3. **Reward Distribution**: Set up automated token distribution contract
-4. **Analytics**: Add tracking for frame interactions
-5. **Rate Limiting**: Add rate limiting to API endpoints
-6. **Error Monitoring**: Set up Sentry or similar
-7. **Email Notifications**: Notify users when PDF is ready
-8. **More PDF Templates**: Add more goal-specific templates
+1. **On-chain Whitelist Status Check**: Surface “Already whitelisted” using a read call.
+2. **Refined Pricing Source**: Plug in a dedicated $tabledadrian price oracle or DEX feed.
+3. **Additional DeSci Content**: Add sections describing specific longevity experiments or cohorts.
+4. **Analytics & Telemetry**: Track conversion from connect → eligible → joined.
 
 ## 🔐 Security Notes
 
-- All sensitive keys in environment variables
-- Service role key only used server-side
-- PDF links expire after 24 hours
-- User data stored securely in Supabase
-- Frame messages verified before processing
+- All sensitive keys live in environment variables.
+- Whitelist contract ownership should be secured (hardware wallet, multisig, or similar).
+- Frontend only touches public RPC + public contract state.
 
 ## 📊 Database Schema
 
