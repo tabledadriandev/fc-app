@@ -29,20 +29,17 @@ export default function Home() {
   )
 
   // Signal to Farcaster Mini App hosts (e.g. Warpcast) that the app has loaded.
-  // Only do this when the app is running as a Mini App (miniApp=true hint).
+  // We always attempt this on mount; in a normal browser it’s a harmless no-op,
+  // but inside a Mini App host it clears the splash screen.
   useEffect(() => {
     if (typeof window === 'undefined') return
-
-    const url = new URL(window.location.href)
-    const isMini =
-      url.pathname.startsWith('/mini') || url.searchParams.get('miniApp') === 'true'
-
-    if (!isMini) return
 
     ;(async () => {
       try {
         const { sdk } = await import('@farcaster/miniapp-sdk')
-        sdk.actions.ready()
+        if (sdk?.actions?.ready) {
+          sdk.actions.ready()
+        }
       } catch (err) {
         console.error('Error calling Farcaster Mini App ready():', err)
       }
