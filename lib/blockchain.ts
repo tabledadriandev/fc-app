@@ -1,34 +1,55 @@
 import { createPublicClient, http, formatUnits } from 'viem'
-import { base } from 'viem/chains'
+import {
+  DESCI_CHAIN,
+  RPC_URL,
+  TABLEDADRIAN_TOKEN_ADDRESS,
+  TABLEDADRIAN_TOKEN_DECIMALS,
+  WHITELIST_CONTRACT_ADDRESS,
+} from './config'
 
-const TA_TOKEN_ADDRESS = process.env.TA_TOKEN_ADDRESS || '0xee47670a6ed7501aeeb9733efd0bf7d93ed3cb07'
-const TA_TOKEN_DECIMALS = 18
-const MIN_ELIGIBILITY = 5_000_000n * 10n ** BigInt(TA_TOKEN_DECIMALS) // 5M tokens
-const HOLDER_BONUS_THRESHOLD = 10_000_000n * 10n ** BigInt(TA_TOKEN_DECIMALS) // 10M tokens
-
-// ERC20 ABI for balanceOf
-const ERC20_ABI = [
+// Minimal ERC‑20 ABI (balanceOf)
+export const ERC20_ABI = [
   {
     constant: true,
     inputs: [{ name: '_owner', type: 'address' }],
     name: 'balanceOf',
     outputs: [{ name: 'balance', type: 'uint256' }],
+    stateMutability: 'view',
     type: 'function',
   },
 ] as const
 
+// Minimal whitelist contract ABI used by the front‑end.
+// See `contracts/Whitelist.sol` for the on‑chain implementation.
+export const WHITELIST_ABI = [
+  {
+    name: 'joinWhitelist',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [],
+    outputs: [],
+  },
+  {
+    name: 'whitelisted',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+] as const
+
 const publicClient = createPublicClient({
-  chain: base,
-  transport: http(process.env.BASE_RPC_URL || 'https://mainnet.base.org'),
+  chain: DESCI_CHAIN,
+  transport: http(RPC_URL),
 })
 
 /**
- * Get user's $tabledadrian token balance
+ * Get user's $tabledadrian token balance (raw bigint).
  */
 export async function getTokenBalance(walletAddress: string): Promise<bigint> {
   try {
     const balance = await publicClient.readContract({
-      address: TA_TOKEN_ADDRESS as `0x${string}`,
+      address: TABLEDADRIAN_TOKEN_ADDRESS,
       abi: ERC20_ABI,
       functionName: 'balanceOf',
       args: [walletAddress as `0x${string}`],
@@ -41,40 +62,35 @@ export async function getTokenBalance(walletAddress: string): Promise<bigint> {
 }
 
 /**
- * Check if user is eligible (holds 5M+ tokens)
- */
-export async function checkEligibility(walletAddress: string): Promise<{
-  eligible: boolean
-  balance: string
-  balanceRaw: bigint
-  message: string
-}> {
-  const balance = await getTokenBalance(walletAddress)
-  const balanceFormatted = formatUnits(balance, TA_TOKEN_DECIMALS)
-  const eligible = balance >= MIN_ELIGIBILITY
-
-  return {
-    eligible,
-    balance: balanceFormatted,
-    balanceRaw: balance,
-    message: eligible
-      ? `Welcome! You hold ${parseFloat(balanceFormatted).toLocaleString()} $tabledadrian`
-      : `Hold 5M $tabledadrian to access Table d'Adrian's AI Wellness Plans`,
-  }
-}
-
-/**
- * Check if user qualifies for holder bonus (10M+ tokens)
- */
-export async function checkHolderBonus(walletAddress: string): Promise<boolean> {
-  const balance = await getTokenBalance(walletAddress)
-  return balance >= HOLDER_BONUS_THRESHOLD
-}
-
-/**
- * Format token amount for display
+ * Convenience helper to format a raw token amount for display.
  */
 export function formatTokenAmount(amount: bigint): string {
-  return formatUnits(amount, TA_TOKEN_DECIMALS)
+  return formatUnits(amount, TABLEDADRIAN_TOKEN_DECIMALS)
+}
+
+/**
+ * Optional helper to check if a user is already whitelisted on‑chain.
+ * Requires `NEXT_PUBLIC_WHITELIST_CONTRACT_ADDRESS` and a deployed contract
+ * compatible with `contracts/Whitelist.sol`.
+ */
+export async function isAddressWhitelisted(address: string): Promise<boolean> {
+  if (!WHITELIST_CONTRACT_ADDRESS) {
+    // No contract configured – treat as not whitelisted but log for operators.
+    console.warn('WHITELIST_CONTRACT_ADDRESS is not set. Skipping on‑chain whitelist check.')
+    return false
+  }
+
+  try {
+    const result = await publicClient.readContract({
+      address: WHITELIST_CONTRACT_ADDRESS,
+      abi: WHITELIST_ABI,
+      functionName: 'whitelisted',
+      args: [address as `0x${string}`],
+    })
+    return Boolean(result)
+  } catch (err) {
+    console.error('Error checking whitelist status:', err)
+    return false
+  }
 }
 

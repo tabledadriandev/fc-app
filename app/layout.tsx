@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'Table d\'Adrian - Wellness Plans',
-  description: 'Personalized wellness plans powered by Table d\'Adrian',
+  title: 'Join the Future of DeSci',
+  description:
+    'A token-gated DeSci whitelist experience powered by the $tabledadrian token on Base.',
   manifest: '/manifest.json',
 }
 
@@ -17,7 +19,9 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }
