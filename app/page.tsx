@@ -29,17 +29,24 @@ export default function Home() {
   )
 
   // Signal to Farcaster Mini App hosts (e.g. Warpcast) that the app has loaded.
+  // Only do this when the app is running as a Mini App (miniApp=true hint).
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    try {
-      const w = window as any
-      if (w.frame?.sdk?.actions?.ready) {
-        w.frame.sdk.actions.ready()
+    const url = new URL(window.location.href)
+    const isMini =
+      url.pathname.startsWith('/mini') || url.searchParams.get('miniApp') === 'true'
+
+    if (!isMini) return
+
+    ;(async () => {
+      try {
+        const { sdk } = await import('@farcaster/miniapp-sdk')
+        sdk.actions.ready()
+      } catch (err) {
+        console.error('Error calling Farcaster Mini App ready():', err)
       }
-    } catch (err) {
-      console.error('Error calling Farcaster Mini App ready():', err)
-    }
+    })()
   }, [])
 
   useEffect(() => {
