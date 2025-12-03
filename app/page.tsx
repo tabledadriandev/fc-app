@@ -28,6 +28,20 @@ export default function Home() {
     [connectors]
   )
 
+  // Signal to Farcaster Mini App hosts (e.g. Warpcast) that the app has loaded.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    try {
+      const w = window as any
+      if (w.frame?.sdk?.actions?.ready) {
+        w.frame.sdk.actions.ready()
+      }
+    } catch (err) {
+      console.error('Error calling Farcaster Mini App ready():', err)
+    }
+  }, [])
+
   useEffect(() => {
     if (!isConnected || !address) {
       setEligibilityState('idle')
