@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
-import { useAccount, useConnect, useDisconnect, useWriteContract } from 'wagmi'
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { injected } from 'wagmi/connectors'
 import { computeBalanceEurValue } from '@/lib/pricing'
-import { getTokenBalance, formatTokenAmount, WHITELIST_ABI } from '@/lib/blockchain'
-import { MIN_EUR_VALUE_REQUIREMENT, WHITELIST_CONTRACT_ADDRESS } from '@/lib/config'
+import { getTokenBalance, formatTokenAmount } from '@/lib/blockchain'
+import { MIN_EUR_VALUE_REQUIREMENT } from '@/lib/config'
 
 type EligibilityState = 'idle' | 'checking' | 'ineligible' | 'eligible'
 type WhitelistState = 'unknown' | 'checking' | 'not-whitelisted' | 'whitelisted'
@@ -22,13 +22,6 @@ export default function Home() {
   const [eurValue, setEurValue] = useState<number | null>(null)
   const [eligibilityMessage, setEligibilityMessage] = useState<string>('')
   const [eligibilityError, setEligibilityError] = useState<string | null>(null)
-
-  const {
-    writeContract,
-    isPending: isJoinPending,
-    error: joinError,
-    isSuccess: isJoinSuccess,
-  } = useWriteContract()
 
   const primaryConnector = useMemo(
     () => connectors.find((c) => c.id === 'injected') ?? connectors[0],
@@ -50,7 +43,6 @@ export default function Home() {
 
     async function checkEligibilityAndStatus() {
       setEligibilityState('checking')
-      setWhitelistState('checking')
       setEligibilityError(null)
 
       try {
@@ -81,15 +73,9 @@ export default function Home() {
           )
         }
 
-        // Whitelist status is only meaningful if a contract address is configured.
-        if (!WHITELIST_CONTRACT_ADDRESS) {
-          setWhitelistState('not-whitelisted')
-        } else {
-          // Simple read via public client is implemented in lib/blockchain if you want
-          // a pre-flight check. For now, we optimistically assume not whitelisted
-          // until the join transaction succeeds.
-          setWhitelistState('not-whitelisted')
-        }
+        // For email-based whitelist, we simply treat users as "not yet whitelisted"
+        // until they click the join button.
+        setWhitelistState('not-whitelisted')
       } catch (err) {
         console.error(err)
         if (cancelled) return
@@ -111,23 +97,28 @@ export default function Home() {
   }
 
   const handleJoinWhitelist = async () => {
-    if (!address || !WHITELIST_CONTRACT_ADDRESS) return
+    if (!address) return
 
-    setWhitelistState('checking')
+    // Instead of an on-chain tx, open an email draft so you receive
+    // whitelist requests directly.
+    // TODO: Replace with your preferred email address.
+    const ownerEmail = process.env.NEXT_PUBLIC_WHITELIST_NOTIFICATION_EMAIL || 'you@example.com'
 
-    try {
-      await writeContract({
-        address: WHITELIST_CONTRACT_ADDRESS,
-        abi: WHITELIST_ABI,
-        functionName: 'joinWhitelist',
-        args: [],
-      })
-      // wagmi will set isJoinSuccess; we also eagerly move UI to whitelisted.
-      setWhitelistState('whitelisted')
-    } catch (err) {
-      console.error('Error joining whitelist:', err)
-      setWhitelistState('not-whitelisted')
-    }
+    const subject = encodeURIComponent('New DeSci whitelist request')
+    const bodyLines = [
+      `Wallet address: ${address}`,
+      eurValue !== null ? `Estimated EUR value: €${eurValue.toFixed(2)}` : 'Estimated EUR value: N/A',
+      balanceDisplay ? `Token balance: ${formatTokenAmount(BigInt(balanceDisplay))} $tabledadrian` : '',
+      '',
+      'You can now review this address and add it to any off-chain or on-chain whitelist you maintain.',
+    ].filter(Boolean)
+
+    const body = encodeURIComponent(bodyLines.join('\n'))
+
+    window.location.href = `mailto:${ownerEmail}?subject=${subject}&body=${body}`
+
+    // Optimistically mark as "whitelisted" in the UI once the user clicks.
+    setWhitelistState('whitelisted')
   }
 
   const notConnected = !isConnected
@@ -135,13 +126,12 @@ export default function Home() {
   const canJoin =
     isConnected &&
     eligibilityState === 'eligible' &&
-    whitelistState !== 'whitelisted' &&
-    !!WHITELIST_CONTRACT_ADDRESS
+    whitelistState !== 'whitelisted'
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-10">
-        <header className="mb-10 flex items-center justify-between">
+    <main className="min-h-[100dvh] bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-5xl flex-col px-4 py-6 sm:py-10">
+        <header className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="relative h-9 w-9 overflow-hidden rounded-full border border-emerald-400/60 bg-slate-900/60">
               {/* Logo placed in `public/ta..PNG` */}
@@ -157,7 +147,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3 sm:justify-end">
             {isConnected && address && (
               <span className="rounded-full bg-slate-800 px-4 py-1 text-xs text-slate-200">
                 {address.slice(0, 6)}…{address.slice(-4)}
@@ -187,15 +177,15 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="grid flex-1 gap-10 md:grid-cols-[3fr,2fr]">
-          <div className="flex flex-col justify-center space-y-6">
-            <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
+        <section className="grid flex-1 gap-6 sm:gap-10 md:grid-cols-[3fr,2fr]">
+          <div className="flex flex-col justify-center space-y-5 text-center sm:space-y-6 sm:text-left">
+            <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               Join the Future
               <br />
               of <span className="bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">DeSci</span>
             </h1>
 
-            <p className="max-w-xl text-sm leading-relaxed text-slate-300 sm:text-base">
+            <p className="mx-auto max-w-xl text-sm leading-relaxed text-slate-300 sm:mx-0 sm:text-base">
               Decentralized science (DeSci) uses Web3 rails to make research funding, data, and
               incentives open, transparent, and community‑owned. The{' '}
               <span className="font-semibold">$tabledadrian</span> token is your access key to a
@@ -227,8 +217,8 @@ export default function Home() {
             </div>
           </div>
 
-          <aside className="flex items-center">
-            <div className="w-full rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl shadow-black/40 backdrop-blur">
+          <aside className="mt-4 flex items-stretch md:mt-0">
+            <div className="w-full rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl shadow-black/40 backdrop-blur sm:p-6">
               <h2 className="mb-4 text-sm font-semibold tracking-[0.15em] text-slate-400">
                 DESCi ACCESS PANEL
               </h2>
@@ -285,7 +275,7 @@ export default function Home() {
                   {!notConnected && (
                     <button
                       onClick={handleJoinWhitelist}
-                      disabled={!canJoin || isJoinPending || insufficientBalance}
+                      disabled={!canJoin || insufficientBalance}
                       className={`w-full rounded-xl px-4 py-2 text-sm font-semibold transition ${
                         canJoin
                           ? 'bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-300'
@@ -294,22 +284,10 @@ export default function Home() {
                     >
                       {insufficientBalance
                         ? 'Hold ≥ €1 of $tabledadrian to join'
-                        : !WHITELIST_CONTRACT_ADDRESS
-                        ? 'Configure whitelist contract address'
-                        : isJoinPending
-                        ? 'Joining whitelist…'
-                        : whitelistState === 'whitelisted' || isJoinSuccess
-                        ? 'Already whitelisted'
+                        : whitelistState === 'whitelisted'
+                        ? 'Request sent'
                         : 'Join DeSci Whitelist'}
                     </button>
-                  )}
-
-                  {(joinError || !WHITELIST_CONTRACT_ADDRESS) && (
-                    <p className="mt-1 text-[11px] leading-snug text-slate-400">
-                      {joinError
-                        ? 'We could not submit your whitelist transaction. Check your wallet, gas settings, and try again.'
-                        : 'Deploy the `DeSciWhitelist` contract and set NEXT_PUBLIC_WHITELIST_CONTRACT_ADDRESS in `.env.local` to enable on‑chain joins.'}
-                    </p>
                   )}
                 </div>
 
