@@ -1,0 +1,26 @@
+{
+  "name": "Table d'Adrian Wellness Plans",
+  "description": "Personalized wellness plans powered by Table d'Adrian. Hold 5M+ $tabledadrian to access AI-generated nutrition protocols, recipes, and supplement plans.",
+  "image": "/api/images/main-menu",
+  "home_url": "https://tabledadrian.com",
+  "app_url": "/api/frame",
+  "frame": {
+    "version": "next",
+    "image": "/api/images/main-menu",
+    "button": {
+      "1": {
+        "action": "post",
+        "target": "/api/frame"
+      },
+      "2": {
+        "action": "post",
+        "target": "/api/frame"
+      },
+      "3": {
+        "action": "link",
+        "target": "/plans"
+      }
+    }
+  }
+}
+
