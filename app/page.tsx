@@ -113,25 +113,8 @@ export default function Home() {
   const handleJoinWhitelist = async () => {
     if (!address) return
 
-    // Instead of an on-chain tx, open an email draft so you receive
-    // whitelist requests directly.
-    // TODO: Replace with your preferred email address.
-    const ownerEmail = process.env.NEXT_PUBLIC_WHITELIST_NOTIFICATION_EMAIL || 'you@example.com'
-
-    const subject = encodeURIComponent('New DeSci whitelist request')
-    const bodyLines = [
-      `Wallet address: ${address}`,
-      eurValue !== null ? `Estimated EUR value: €${eurValue.toFixed(2)}` : 'Estimated EUR value: N/A',
-      balanceDisplay ? `Token balance: ${formatTokenAmount(BigInt(balanceDisplay))} $tabledadrian` : '',
-      '',
-      'You can now review this address and add it to any off-chain or on-chain whitelist you maintain.',
-    ].filter(Boolean)
-
-    const body = encodeURIComponent(bodyLines.join('\n'))
-
-    window.location.href = `mailto:${ownerEmail}?subject=${subject}&body=${body}`
-
-    // Optimistically mark as "whitelisted" in the UI once the user clicks.
+    // Simple local waitlist UX: once an eligible user clicks the button,
+    // we treat them as "on the waitlist" in this interface.
     setWhitelistState('whitelisted')
   }
 
@@ -299,7 +282,7 @@ export default function Home() {
                       {insufficientBalance
                         ? 'Hold ≥ €1 of $tabledadrian to join'
                         : whitelistState === 'whitelisted'
-                        ? 'Request sent'
+                        ? 'You are on the waitlist'
                         : 'Join DeSci Whitelist'}
                     </button>
                   )}
