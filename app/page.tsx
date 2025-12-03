@@ -22,11 +22,15 @@ export default function Home() {
   const [eurValue, setEurValue] = useState<number | null>(null)
   const [eligibilityMessage, setEligibilityMessage] = useState<string>('')
   const [eligibilityError, setEligibilityError] = useState<string | null>(null)
+  const [miniAppAddress, setMiniAppAddress] = useState<string | null>(null)
 
   const primaryConnector = useMemo(
     () => connectors.find((c) => c.id === 'injected') ?? connectors[0],
     [connectors]
   )
+
+  const effectiveAddress = (miniAppAddress ?? address) as `0x${string}` | null
+  const effectiveIsConnected = !!effectiveAddress
 
   // Signal to Farcaster Mini App hosts (e.g. Warpcast) that the app has loaded.
   // We always attempt this on mount; in a normal browser it’s a harmless no-op,
@@ -47,7 +51,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (!isConnected || !address) {
+    if (!effectiveIsConnected || !effectiveAddress) {
       setEligibilityState('idle')
       setWhitelistState('unknown')
       setBalanceDisplay(null)
@@ -64,7 +68,7 @@ export default function Home() {
       setEligibilityError(null)
 
       try {
-        const rawBalance = await getTokenBalance(address as `0x${string}`)
+        const rawBalance = await getTokenBalance(effectiveAddress as `0x${string}`)
         const { eurValue: value, tokenAmount, meetsRequirement } =
           await computeBalanceEurValue(rawBalance)
 
@@ -107,25 +111,47 @@ export default function Home() {
     return () => {
       cancelled = true
     }
-  }, [address, isConnected])
+  }, [effectiveAddress, effectiveIsConnected])
 
   const handleConnect = () => {
-    if (!primaryConnector) return
-    connect({ connector: primaryConnector })
+    // Try Farcaster Mini App wallet first (inside Warpcast)
+    ;(async () => {
+      try {
+        const { sdk } = await import('@farcaster/miniapp-sdk')
+        if (sdk?.wallet?.getEthereumProvider) {
+          const provider: any = await sdk.wallet.getEthereumProvider()
+          if (provider?.request) {
+            const accounts = (await provider.request({
+              method: 'eth_requestAccounts',
+            })) as string[]
+            if (accounts && accounts[0]) {
+              setMiniAppAddress(accounts[0] as `0x${string}`)
+              return
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Mini App wallet connect failed, falling back to injected:', err)
+      }
+
+      // Fallback: standard injected connector (browser wallets)
+      if (!primaryConnector) return
+      connect({ connector: primaryConnector })
+    })()
   }
 
   const handleJoinWhitelist = async () => {
-    if (!address) return
+    if (!effectiveAddress) return
 
     // Simple local waitlist UX: once an eligible user clicks the button,
     // we treat them as "on the waitlist" in this interface.
     setWhitelistState('whitelisted')
   }
 
-  const notConnected = !isConnected
+  const notConnected = !effectiveIsConnected
   const insufficientBalance = eligibilityState === 'ineligible'
   const canJoin =
-    isConnected &&
+    effectiveIsConnected &&
     eligibilityState === 'eligible' &&
     whitelistState !== 'whitelisted'
 
@@ -149,13 +175,13 @@ export default function Home() {
           </div>
 
           <div className="flex items-center justify-between gap-3 sm:justify-end">
-            {isConnected && address && (
+            {effectiveIsConnected && effectiveAddress && (
               <span className="rounded-full bg-slate-800 px-4 py-1 text-xs text-slate-200">
-                {address.slice(0, 6)}…{address.slice(-4)}
+                {effectiveAddress.slice(0, 6)}…{effectiveAddress.slice(-4)}
               </span>
             )}
 
-            {isConnected ? (
+            {effectiveIsConnected ? (
               <button
                 onClick={() => disconnect()}
                 className="rounded-full border border-slate-600 px-4 py-1 text-xs font-semibold text-slate-200 hover:border-slate-400 hover:bg-slate-800"
