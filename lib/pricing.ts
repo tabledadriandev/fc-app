@@ -4,36 +4,63 @@ import { TABLEDADRIAN_TOKEN_DECIMALS, MIN_EUR_VALUE_REQUIREMENT } from './config
 /**
  * Small utility layer for token EUR pricing.
  *
- * You can swap this implementation to:
- * - Pull from a price oracle (e.g. Chainlink),
- * - Use a dedicated DEX/AMM price endpoint,
- * - Or hard‑code a price for gated communities.
+ * Current data source:
+ * - GeckoTerminal Base pool:
+ *   https://www.geckoterminal.com/base/pools/0xa421606ad7907968228c58d56f20ab1028db588cedb3ece882e9c55515346d7d
  */
 
-// Basic Coingecko fallback – currently uses the underlying chain token (ETH on Base) as proxy.
-// Replace `coingeckoId` with the actual token once $tabledadrian has a listed feed.
-const DEFAULT_COINGECKO_ID = 'ethereum'
+const GECKO_TERMINAL_POOL_URL =
+  'https://api.geckoterminal.com/api/v2/networks/base/pools/0xa421606ad7907968228c58d56f20ab1028db588cedb3ece882e9c55515346d7d'
 
 export async function fetchTokenEurPrice(): Promise<number> {
-  // Preferred: explicit override from env for full control.
+  // 1) Preferred: explicit manual override (lets you pin or smooth price if needed)
   const manualPrice = process.env.NEXT_PUBLIC_TABLEDADRIAN_EUR_PRICE
   if (manualPrice) {
     const parsed = Number(manualPrice)
     if (!Number.isNaN(parsed) && parsed > 0) return parsed
   }
 
+  // 2) Live price from GeckoTerminal
   try {
-    const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${DEFAULT_COINGECKO_ID}&vs_currencies=eur`
-    )
-    if (!res.ok) throw new Error('Price API failed')
-    const data = (await res.json()) as Record<string, { eur: number }>
-    const price = data[DEFAULT_COINGECKO_ID]?.eur
-    if (!price || price <= 0) throw new Error('Invalid price data')
-    return price
+    const res = await fetch(GECKO_TERMINAL_POOL_URL, {
+      // Helpful for debugging in GeckoTerminal logs if needed
+      headers: {
+        'Accept': 'application/json',
+      },
+      next: { revalidate: 30 }, // cache for 30s on server to avoid rate limits
+    })
+
+    if (!res.ok) throw new Error(`GeckoTerminal API failed: ${res.status}`)
+
+    const json = (await res.json()) as any
+
+    // GeckoTerminal pool payload structure:
+    // {
+    //   data: {
+    //     attributes: {
+    //       base_token_price_usd: "0.000123",
+    //       quote_token_price_usd: "...",
+    //       // ...
+    //     }
+    //   }
+    // }
+    const usdStr: string | undefined =
+      json?.data?.attributes?.base_token_price_usd ??
+      json?.data?.attributes?.price_in_usd // fallback if schema changes
+
+    const usd = usdStr ? Number(usdStr) : NaN
+    if (!usd || Number.isNaN(usd) || usd <= 0) {
+      throw new Error('Invalid USD price data from GeckoTerminal')
+    }
+
+    // Use a simple FX estimate for EUR (or plug in a dedicated FX feed later)
+    const usdToEur = 0.92 // approximate; adjust if you want closer parity
+    const eur = usd * usdToEur
+
+    return eur
   } catch (err) {
-    console.error('Error fetching EUR price for token:', err)
-    // Fallback to 0 so eligibility check clearly fails rather than over‑granting access
+    console.error('Error fetching EUR price for token from GeckoTerminal:', err)
+    // 3) Fallback to 0 so eligibility check clearly fails rather than over‑granting access
     return 0
   }
 }
