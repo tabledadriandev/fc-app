@@ -1,0 +1,31 @@
+{
+  "frame": {
+    "name": "tabledadrian ",
+    "version": "1",
+    "iconUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
+    "homeUrl": "https://fc-app-sandy.vercel.app/",
+    "imageUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
+    "buttonTitle": "Join Whitelist",
+    "splashImageUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
+    "splashBackgroundColor": "#251fde",
+    "webhookUrl": "https://fc-app-sandy.vercel.app/api/webhook",
+    "subtitle": "Future of DeSci",
+    "description": "A tiny DeSci doorway: hold a bit of $tabledadrian﻿, tap in, and step into a private wellness club where science, food, and longevity experiments all meet.",
+    "primaryCategory": "utility",
+    "tags": ["utility"],
+    "tagline": "Join the Future of DeSci",
+    "ogTitle": "Join DeSci. Taste Longevity.",
+    "ogDescription": "Hold a little tabledadrian, tap in, and join a token-gated club",
+    "ogImageUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
+    "castShareUrl": "https://fc-app-sandy.vercel.app/",
+    "heroImageUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
+    "screenshotUrls": ["https://fc-app-sandy.vercel.app/ta..PNG"]
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjE0MDYzNjgsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg4NmZCNGViMzNjMGMwMDIyMEIyNzMwNEE4QjJkMjVjQzg5YTYxMDg5In0",
+    "payload": "eyJkb21haW4iOiJodHRwczovL2ZjLWFwcC1zYW5keS52ZXJjZWwuYXBwLyJ9",
+    "signature": "Ctl+goxZ6hJQV2o6ksgJ8zsUg2SVbm+euoB5peyTRINXk+2ROJ4r8NGr93c2NMrHQtW1zuSj+dUdAc3afAYTJxs="
+  }
+}
+
+
