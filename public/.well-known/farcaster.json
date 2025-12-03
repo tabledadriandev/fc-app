@@ -1,25 +1,27 @@
 {
-  "frame": {
-    "name": "tabledadrian ",
+  "miniapp": {
     "version": "1",
-    "iconUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
+    "name": "tabledadrian",
+    "iconUrl": "https://res.cloudinary.com/dcwnn9c0u/image/upload/v1764765593/dkpetuq9gkbxrt5sw628.png",
     "homeUrl": "https://fc-app-sandy.vercel.app/",
-    "imageUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
-    "buttonTitle": "Join Whitelist",
-    "splashImageUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
+    "imageUrl": "https://res.cloudinary.com/dcwnn9c0u/image/upload/v1764765559/yi6v0so7hbx8vbux24cg.png",
+    "buttonTitle": "Join Waitlist",
+    "splashImageUrl": "https://res.cloudinary.com/dcwnn9c0u/image/upload/v1764765612/lyez7o0gtovctdjipiwz.png",
     "splashBackgroundColor": "#251fde",
     "webhookUrl": "https://fc-app-sandy.vercel.app/api/webhook",
     "subtitle": "Future of DeSci",
-    "description": "A tiny DeSci doorway: hold a bit of $tabledadrian﻿, tap in, and step into a private wellness club where science, food, and longevity experiments all meet.",
+    "description": "Hold €1 of $tabledadrian to join a private DeSci wellness club.",
     "primaryCategory": "utility",
-    "tags": ["utility"],
-    "tagline": "Join the Future of DeSci",
-    "ogTitle": "Join DeSci. Taste Longevity.",
-    "ogDescription": "Hold a little tabledadrian, tap in, and join a token-gated club",
-    "ogImageUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
-    "castShareUrl": "https://fc-app-sandy.vercel.app/",
-    "heroImageUrl": "https://fc-app-sandy.vercel.app/ta..PNG",
-    "screenshotUrls": ["https://fc-app-sandy.vercel.app/ta..PNG"]
+    "tags": ["community", "social", "utility"],
+    "tagline": "DeSci club with tabledadrian.",
+    "ogDescription": "Whitelist into a token-gated DeSci wellness club with tabledadrian.",
+    "ogTitle": "tabledadrian",
+    "heroImageUrl": "https://res.cloudinary.com/dcwnn9c0u/image/upload/v1764765559/yi6v0so7hbx8vbux24cg.png",
+    "screenshotUrls": [
+      "https://res.cloudinary.com/dcwnn9c0u/image/upload/v1764765559/yi6v0so7hbx8vbux24cg.png"
+    ],
+    "ogImageUrl": "https://res.cloudinary.com/dcwnn9c0u/image/upload/v1764765635/m4a1ue4xstiajyrbogz2.png",
+    "castShareUrl": "https://farcaster.xyz/adrsteph.base.eth/0x02091c54"
   },
   "accountAssociation": {
     "header": "eyJmaWQiOjE0MDYzNjgsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg4NmZCNGViMzNjMGMwMDIyMEIyNzMwNEE4QjJkMjVjQzg5YTYxMDg5In0",
