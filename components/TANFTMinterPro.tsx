@@ -827,12 +827,28 @@ export default function TANFTMinterPro() {
               {/* Main Mint Button - Auto-fetches user data */}
               {isConnected && (
                 <button
-                  onClick={mintNFT}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!loading) {
+                      mintNFT();
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!loading) {
+                      mintNFT();
+                    }
+                  }}
                   disabled={loading}
                   className="w-full bg-black text-white border-4 border-black p-4 sm:p-6 text-lg sm:text-xl font-black
                            hover:bg-white hover:text-black transition-all duration-200
                            active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
-                           disabled:opacity-50 text-center"
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           touch-manipulation cursor-pointer text-center
+                           active:scale-95"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   {loading ? 'LOADING...' : 'MINT NFT (0.001 ETH)'}
                 </button>
@@ -940,12 +956,28 @@ export default function TANFTMinterPro() {
 
               {/* Mint Button */}
               <button
-                onClick={mintNFT}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!loading && isConnected) {
+                    mintNFT();
+                  }
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!loading && isConnected) {
+                    mintNFT();
+                  }
+                }}
                 disabled={loading || !isConnected}
                 className="w-full bg-black text-white border-4 border-black p-4 sm:p-6 text-lg sm:text-xl font-black
                          hover:bg-white hover:text-black transition-all duration-200
                          active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
-                         disabled:opacity-50"
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         touch-manipulation cursor-pointer
+                         active:scale-95"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 {loading ? 'PREPARING MINT...' : 'MINT NFT (0.001 ETH)'}
               </button>
