@@ -17,21 +17,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const LIQUIDITY_POOL = process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS;
+    // Recipient address - can be your wallet address or liquidity pool address
+    // Must be an EOA (Externally Owned Account) that can receive ETH directly
+    const RECIPIENT_ADDRESS = process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS;
 
-    if (!LIQUIDITY_POOL) {
-      console.error('LIQUIDITY_POOL environment variable not set');
+    if (!RECIPIENT_ADDRESS) {
+      console.error('RECIPIENT_ADDRESS environment variable not set');
       return NextResponse.json(
-        { error: "Liquidity pool address not configured. Please set NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS in environment variables." },
+        { error: "Recipient address not configured. Please set NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS in environment variables (can be your wallet address)." },
         { status: 500 }
       );
     }
 
-    // Validate liquidity pool address format
-    if (!LIQUIDITY_POOL.startsWith('0x') || LIQUIDITY_POOL.length !== 42) {
-      console.error('Invalid liquidity pool address format:', LIQUIDITY_POOL);
+    // Validate recipient address format (must be valid Ethereum address)
+    if (!RECIPIENT_ADDRESS.startsWith('0x') || RECIPIENT_ADDRESS.length !== 42) {
+      console.error('Invalid recipient address format:', RECIPIENT_ADDRESS);
       return NextResponse.json(
-        { error: "Invalid liquidity pool address format" },
+        { error: "Invalid recipient address format. Must be a valid Ethereum address (0x followed by 40 hex characters)." },
         { status: 500 }
       );
     }
@@ -46,13 +48,13 @@ export async function POST(req: NextRequest) {
       const valueHex = `0x${valueWei.toString(16)}`;
       console.log('Transaction value (hex):', valueHex);
 
-      // Simple transaction - just send ETH to liquidity pool
+      // Simple transaction - just send ETH to recipient address (your wallet)
       // NFT ownership is stored in database, no contract needed
       const transaction = {
-        to: LIQUIDITY_POOL as `0x${string}`,
+        to: RECIPIENT_ADDRESS as `0x${string}`,
         value: valueHex, // Hex string - this is what Ethereum expects
         chainId: 8453,
-        data: "0x" as `0x${string}`, // No contract call needed
+        data: "0x" as `0x${string}`, // No contract call needed - plain ETH transfer
       };
 
       console.log('Transaction prepared:', {
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest) {
           name: `TA NFT: ${username}`,
           collection: "Table d'Adrian DeSci Collection",
           price: "0.001 ETH",
-          destination: "Your Wallet (stored in database) + Liquidity Pool",
+          destination: "Your Wallet (stored in database) + Recipient Address",
         },
       };
 
