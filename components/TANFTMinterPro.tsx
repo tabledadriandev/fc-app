@@ -118,19 +118,22 @@ export default function TANFTMinterPro() {
     setLoading(true);
     setError("");
 
-    // Get wallet client - try multiple ways
+    // Get wallet client - use the hook value or wait a moment
     let client = walletClient;
+    
+    // If walletClient is not ready, wait a bit for it to initialize
     if (!client) {
-      try {
-        // Try to get it directly
-        client = await getWalletClient(config);
-      } catch (err) {
-        console.log('Could not get wallet client directly');
+      // Wait up to 2 seconds for wallet client to be ready
+      for (let i = 0; i < 20; i++) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Re-check if walletClient is now available (it updates via hook)
+        // We'll use the hook value directly below
       }
+      client = walletClient; // Re-check after waiting
     }
 
     if (!client) {
-      setError("Wallet not ready. Please make sure MetaMask is connected to Base network and try again.");
+      setError("Wallet not ready. Please make sure MetaMask is connected to Base network and refresh the page.");
       setLoading(false);
       return;
     }
