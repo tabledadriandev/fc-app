@@ -448,12 +448,26 @@ export default function TANFTMinterPro() {
           
           // Send transaction via Farcaster wallet provider (opens in Farcaster wallet)
           try {
+            // Ensure value is properly formatted as hex string
+            // data.transaction.value is already a BigInt from parseEther
+            const valueBigInt = typeof data.transaction.value === 'string' 
+              ? BigInt(data.transaction.value) 
+              : BigInt(data.transaction.value);
+            const valueHex = valueBigInt.toString(16);
+            const valueWithPrefix = valueHex.startsWith('0x') ? valueHex : `0x${valueHex}`;
+            
+            console.log('Transaction value:', {
+              original: data.transaction.value,
+              bigInt: valueBigInt.toString(),
+              hex: valueWithPrefix
+            });
+            
             hash = await ethereumProvider.request({
               method: 'eth_sendTransaction',
               params: [{
                 from: walletAddress as `0x${string}`,
                 to: data.transaction.to,
-                value: `0x${BigInt(data.transaction.value).toString(16)}`,
+                value: valueWithPrefix,
                 data: data.transaction.data || '0x',
                 chainId: `0x${data.transaction.chainId.toString(16)}`, // Base chain ID: 8453 = 0x2105
               }],
@@ -734,7 +748,7 @@ export default function TANFTMinterPro() {
                          active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
                          disabled:opacity-50"
               >
-                {loading ? 'PREPARING MINT...' : 'MINT NFT (0.003 ETH)'}
+                {loading ? 'PREPARING MINT...' : 'MINT NFT (0.001 ETH)'}
               </button>
             </div>
           )}
