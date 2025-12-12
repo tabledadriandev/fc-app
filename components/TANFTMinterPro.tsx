@@ -418,10 +418,17 @@ export function TANFTMinterPro() {
                                   requestBody.farcasterUsername = inputUsername.trim();
                                 }
 
-                                const res = await fetch("/api/fetch-farcaster-user", {
-                                  method: "POST",
+                                let apiUrl = "/api/fetch-farcaster-user?";
+                                
+                                if (inputMethod === "wallet") {
+                                  apiUrl += `wallet=${address}`;
+                                } else {
+                                  apiUrl += `username=${inputUsername.trim()}`;
+                                }
+
+                                const res = await fetch(apiUrl, {
+                                  method: "GET",
                                   headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify(requestBody),
                                 });
 
                                 const data = await res.json();
@@ -514,14 +521,9 @@ export function TANFTMinterPro() {
                               setError("");
 
                               try {
-                                const res = await fetch("/api/check-user", {
-                                  method: "POST",
+                                const res = await fetch(`/api/fetch-farcaster-user?username=${userProfile.username}`, {
+                                  method: "GET",
                                   headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({
-                                    walletAddress: address,
-                                    farcasterUsername: userProfile.username,
-                                    pfpUrl: userProfile.pfpUrl,
-                                  }),
                                 });
 
                                 const data = await res.json();
