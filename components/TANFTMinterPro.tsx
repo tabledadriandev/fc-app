@@ -449,6 +449,15 @@ export default function TANFTMinterPro() {
     setStep("minting");
 
     try {
+      // Ensure SDK is ready before proceeding
+      try {
+        await sdk.actions.ready();
+        console.log('Farcaster SDK is ready');
+      } catch (sdkReadyErr) {
+        console.log('SDK ready check:', sdkReadyErr);
+        // Continue anyway, SDK might already be ready
+      }
+
       // Fetch user's recent cast for sharing
       let castData = null;
       try {
@@ -484,38 +493,48 @@ export default function TANFTMinterPro() {
       if (!res.ok) {
         throw new Error(data.error || "Mint preparation failed");
       }
+      
+      console.log('Transaction data prepared:', data.transaction);
 
       // Use Farcaster SDK's Ethereum provider for transaction (opens in Farcaster wallet)
       let hash: string | undefined;
       
       try {
-        const ethereumProvider = await sdk.wallet.getEthereumProvider();
+        // Always try Farcaster SDK provider first (this opens the modal)
+        let ethereumProvider = null;
+        try {
+          ethereumProvider = await sdk.wallet.getEthereumProvider();
+          console.log('Farcaster SDK provider available:', !!ethereumProvider);
+        } catch (sdkErr) {
+          console.log('Could not get Farcaster SDK provider:', sdkErr);
+        }
         
         if (ethereumProvider) {
-          console.log('Sending transaction via Farcaster wallet provider');
+          console.log('Using Farcaster SDK provider for transaction');
           
           // First, request accounts to ensure wallet is connected (this opens the modal if needed)
+          let accounts: string[] = [];
           try {
-            const accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' }) as string[];
+            console.log('Requesting accounts via Farcaster SDK...');
+            accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' }) as string[];
+            console.log('Accounts received:', accounts);
+            
             if (!accounts || accounts.length === 0) {
-              throw new Error('No accounts available. Please connect your wallet.');
+              // Try eth_accounts as fallback
+              accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
+              console.log('Accounts from eth_accounts:', accounts);
+              
+              if (!accounts || accounts.length === 0) {
+                throw new Error('No accounts available. Please connect your wallet in the Farcaster app.');
+              }
             }
+            
             // Update wallet address from the connected account
             walletAddress = accounts[0] as `0x${string}`;
-            console.log('Wallet connected via Farcaster SDK:', walletAddress);
+            console.log('Wallet address from Farcaster SDK:', walletAddress);
           } catch (requestErr: any) {
             console.error('Error requesting accounts:', requestErr);
-            // If requestAccounts fails, try eth_accounts as fallback
-            try {
-              const accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
-              if (accounts && accounts.length > 0) {
-                walletAddress = accounts[0] as `0x${string}`;
-              } else {
-                throw new Error('Please connect your wallet first');
-              }
-            } catch (accountsErr) {
-              throw new Error('Please connect your wallet first');
-            }
+            throw new Error(`Failed to connect wallet: ${requestErr?.message || 'Please connect your wallet in the Farcaster app'}`);
           }
           
           // Ensure value is properly formatted as hex string
@@ -528,28 +547,25 @@ export default function TANFTMinterPro() {
           // Format chain ID as hex (Base = 8453 = 0x2105)
           const chainIdHex = `0x${data.transaction.chainId.toString(16)}` as `0x${string}`;
           
-          console.log('Transaction data:', {
-            from: walletAddress,
-            to: data.transaction.to,
+          const txParams = {
+            from: walletAddress as `0x${string}`,
+            to: data.transaction.to as `0x${string}`,
             value: valueWithPrefix,
+            data: data.transaction.data || '0x',
             chainId: chainIdHex,
-            data: data.transaction.data || '0x'
-          });
+          };
           
-          // Send transaction via Farcaster wallet provider (this opens the modal)
+          console.log('Sending transaction via Farcaster SDK:', txParams);
+          
+          // Send transaction via Farcaster wallet provider (this should open the modal)
           try {
+            console.log('Calling eth_sendTransaction - this should open the Farcaster wallet modal...');
             hash = await ethereumProvider.request({
               method: 'eth_sendTransaction',
-              params: [{
-                from: walletAddress as `0x${string}`,
-                to: data.transaction.to as `0x${string}`,
-                value: valueWithPrefix,
-                data: data.transaction.data || '0x',
-                chainId: chainIdHex,
-              }],
+              params: [txParams],
             }) as string;
             
-            console.log('Transaction sent, hash:', hash);
+            console.log('Transaction sent successfully, hash:', hash);
             setTxHash(hash);
             
             // Wait for confirmation
@@ -560,6 +576,14 @@ export default function TANFTMinterPro() {
             }
           } catch (farcasterErr: any) {
             console.error('Farcaster provider transaction error:', farcasterErr);
+            const errorMsg = farcasterErr?.message || farcasterErr?.error?.message || String(farcasterErr);
+            console.error('Full error:', JSON.stringify(farcasterErr, null, 2));
+            
+            // Check if it's a user rejection
+            if (errorMsg.includes('rejected') || errorMsg.includes('denied') || farcasterErr?.code === 4001) {
+              throw new Error('Transaction was rejected. Please try again when you\'re ready to confirm.');
+            }
+            
             throw farcasterErr;
           }
         } else if (client) {
