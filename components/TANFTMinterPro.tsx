@@ -388,7 +388,7 @@ export default function TANFTMinterPro() {
           {step === "minting" && (
             <div className="text-center py-6 sm:py-8">
               <div className="text-xl sm:text-2xl font-black mb-4">MINTING YOUR NFT...</div>
-              <div className="text-xs sm:text-sm text-gray-600">Minting NFT to your wallet...</div>
+              <div className="text-xs sm:text-sm text-gray-600">Minting your NFT and sending payment...</div>
               {txHash && (
                 <div className="mt-4 p-3 sm:p-4 bg-gray-100 border-2 border-black">
                   <div className="text-xs font-mono break-all">{txHash}</div>
@@ -413,7 +413,7 @@ export default function TANFTMinterPro() {
               <div className="border-2 border-black p-3 sm:p-4 mb-4 sm:mb-6 bg-green-100">
                 <div className="font-bold text-base sm:text-lg mb-2">Successfully Minted!</div>
                 <div className="text-xs sm:text-sm mb-2">@{userData?.username}</div>
-                <div className="text-xs mb-2">NFT minted to your wallet • 0.003 ETH to $TA Liquidity Pool</div>
+                <div className="text-xs mb-2">NFT minted and owned by you • 0.003 ETH sent to $TA Liquidity Pool</div>
                 {txHash && (
                   <div className="text-xs font-mono break-all text-gray-600">
                     TX: {txHash.substring(0, 20)}...{txHash.substring(txHash.length - 10)}
