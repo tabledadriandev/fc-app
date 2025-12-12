@@ -108,8 +108,14 @@ export default function TANFTMinterPro() {
   };
 
   const mintNFT = async () => {
-    if (!address || !walletClient) {
+    if (!address) {
       setError("Please connect your wallet first");
+      return;
+    }
+
+    // Wait for wallet client if not ready
+    if (!walletClient) {
+      setError("Wallet not ready. Please try again in a moment.");
       return;
     }
 
@@ -194,11 +200,12 @@ export default function TANFTMinterPro() {
         throw new Error(data.error || "Mint preparation failed");
       }
 
-      // Send transaction - 0.003 ETH to liquidity pool
+      // Send transaction - 0.003 ETH to liquidity pool on Base chain
       const hash = await walletClient.sendTransaction({
         to: data.transaction.to as `0x${string}`,
         value: data.transaction.value, // 0.003 ETH
         account: address,
+        chain: publicClient?.chain, // Use Base chain from publicClient
       });
 
       setTxHash(hash);
