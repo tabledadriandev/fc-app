@@ -19,6 +19,12 @@ export async function GET(request: Request) {
     if (fid) {
       targetFid = parseInt(fid);
       console.log('Using provided FID:', targetFid);
+      if (isNaN(targetFid) || targetFid <= 0) {
+        return NextResponse.json({
+          error: 'Invalid FID provided',
+          details: `FID must be a positive number, got: ${fid}`
+        }, { status: 400 });
+      }
     }
 
     // Try multiple endpoints for better reliability

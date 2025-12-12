@@ -108,6 +108,7 @@ export default function TANFTMinterPro() {
         // Try to get FID from Farcaster SDK context first (most reliable)
         try {
           const context = await sdk.context;
+          console.log('Farcaster context:', context);
           if (context?.user?.fid) {
             const fid = context.user.fid;
             console.log('Got FID from Farcaster context:', fid);
@@ -116,9 +117,11 @@ export default function TANFTMinterPro() {
               await fetchUserData(fid.toString(), false);
             }
             return; // Success, exit early
+          } else {
+            console.log('No FID in context, context.user:', context?.user);
           }
         } catch (contextErr) {
-          console.log('Could not get FID from context, trying wallet:', contextErr);
+          console.error('Error getting FID from context:', contextErr);
         }
         
         // Fallback: Get wallet from Ethereum provider
@@ -232,16 +235,24 @@ export default function TANFTMinterPro() {
         
         try {
           const context = await sdk.context;
+          console.log('Farcaster context for mint:', context);
           if (context?.user?.fid) {
             const fid = context.user.fid;
             console.log('Got FID from Farcaster context for mint:', fid);
             const userRes = await fetch(`/api/fetch-farcaster-user?fid=${fid}`);
+            console.log('FID lookup response status:', userRes.status);
             if (userRes.ok) {
               fetchedUserData = await userRes.json();
+              console.log('Fetched user data by FID:', fetchedUserData);
+            } else {
+              const errorData = await userRes.json().catch(() => ({}));
+              console.error('FID lookup failed:', errorData);
             }
+          } else {
+            console.log('No FID in context for mint, context.user:', context?.user);
           }
         } catch (contextErr) {
-          console.log('Could not get FID from context, trying wallet:', contextErr);
+          console.error('Error getting FID from context for mint:', contextErr);
         }
         
         // Fallback: Try wallet address
@@ -485,12 +496,38 @@ export default function TANFTMinterPro() {
             </div>
           </div>
 
-          {/* Description */}
+              {/* Description */}
               <div className="border-2 border-black p-3 sm:p-4 mb-6 sm:mb-8 bg-gray-50">
                 <p className="text-xs sm:text-sm">
                   Mint a $tabledadrian NFT generated from your Farcaster profile picture. All fees (0.003 ETH) go to the LP of the token.
-            </p>
-          </div>
+                </p>
+              </div>
+
+              {/* Manual Username Input (fallback if auto-detect fails) */}
+              {error && error.includes('User not found') && (
+                <div className="border-2 border-black p-3 sm:p-4 mb-4 bg-yellow-50">
+                  <p className="text-xs sm:text-sm mb-3 font-bold">Could not auto-detect your profile. Enter your Farcaster username:</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      placeholder="yourusername (without @)"
+                      className="flex-1 border-2 border-black p-2 text-sm"
+                      onKeyPress={(e) => e.key === 'Enter' && handleUsernameSubmit()}
+                    />
+                    <button
+                      onClick={handleUsernameSubmit}
+                      disabled={loading || !usernameInput.trim()}
+                      className="bg-black text-white border-2 border-black px-4 py-2 text-sm font-bold
+                               hover:bg-white hover:text-black transition-all
+                               disabled:opacity-50"
+                    >
+                      FETCH
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Main Mint Button - Auto-fetches user data */}
               {isConnected && (
