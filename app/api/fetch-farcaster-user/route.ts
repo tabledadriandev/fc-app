@@ -1,8 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY;
-
-// Alternative approach: Direct Farcaster username lookup without requiring wallet connection
 export async function POST(req: NextRequest) {
   try {
     const { walletAddress, farcasterUsername } = await req.json();
@@ -14,179 +11,185 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!NEYNAR_API_KEY) {
-      console.error("NEYNAR_API_KEY not configured in environment");
-      return NextResponse.json(
-        {
-          error: "NEYNAR_API_KEY not configured",
-          hint: "Check your .env.local and Vercel environment variables",
-        },
-        { status: 500 }
-      );
-    }
+    let fid = null;
+    let username = farcasterUsername;
 
-    console.log("Looking up Farcaster user:", { walletAddress, farcasterUsername });
-
-    let user = null;
-
-    // METHOD 1: Try direct username lookup (more reliable)
+    // If we have a username, we need to find the FID first
     if (farcasterUsername) {
       try {
-        const usernameUrl = `https://api.neynar.com/v2/farcaster/user/by_username?username=${farcasterUsername}`;
-        console.log("Trying direct username lookup...");
+        // Search for user by username to get FID
+        const searchResponse = await fetch(
+          `https://hub.pinata.cloud/v1/userDataByUsername?username=${encodeURIComponent(farcasterUsername)}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
 
-        const response = await fetch(usernameUrl, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": NEYNAR_API_KEY,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          user = data.user;
-          console.log("✓ User found by username:", user?.username);
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          fid = searchData.fid;
+          console.log(`✓ Found FID ${fid} for username: ${farcasterUsername}`);
         } else {
-          const errorData = await response.json();
-          console.log("Username lookup status:", response.status, errorData);
+          throw new Error(`User not found: ${farcasterUsername}`);
         }
       } catch (err) {
-        console.log("Username lookup error:", (err as Error).message);
-      }
-    }
-
-    // METHOD 2: Try by FID if username didn't work
-    if (!user && farcasterUsername) {
-      try {
-        // First get user info to get FID
-        const userUrl = `https://api.neynar.com/v2/farcaster/user/by_username?username=${farcasterUsername}`;
-        const userResponse = await fetch(userUrl, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": NEYNAR_API_KEY,
+        console.error('Username search error:', err);
+        return NextResponse.json(
+          {
+            error: "User not found on Farcaster",
+            steps: [
+              "1. Go to https://warpcast.com",
+              "2. Sign in to your Farcaster account",
+              "3. Verify your username is correct",
+              "4. Make sure your profile is public",
+              "5. Try again with the exact username",
+            ],
+            hint: "Use your exact Farcaster username (without @)",
+            alternative: "You can also try connecting your wallet first",
           },
-        });
-
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          const fid = userData.user?.fid;
-          
-          if (fid) {
-            // Get detailed user info by FID
-            const fidUrl = `https://api.neynar.com/v2/farcaster/user?fid=${fid}`;
-            const fidResponse = await fetch(fidUrl, {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                "x-api-key": NEYNAR_API_KEY,
-              },
-            });
-
-            if (fidResponse.ok) {
-              const fidData = await fidResponse.json();
-              user = fidData.user;
-              console.log("✓ User found by FID:", user?.username);
-            }
-          }
-        }
-      } catch (err) {
-        console.log("FID lookup error:", (err as Error).message);
+          { status: 404 }
+        );
       }
     }
 
-    // METHOD 3: Wallet address lookup (fallback)
-    if (!user && walletAddress) {
+    // If we have a wallet address, we need to find the associated FID
+    if (walletAddress && !fid) {
       try {
-        const walletUrl = `https://api.neynar.com/v2/farcaster/user/bulk-by-address?addresses=${walletAddress}&address_types=custody_address,verified_address`;
-        console.log("Trying wallet address lookup...");
-
-        const response = await fetch(walletUrl, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": NEYNAR_API_KEY,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.users && data.users.length > 0) {
-            user = data.users[0];
-            console.log("✓ User found by wallet:", user?.username);
+        // Search for custody address to get FID
+        const custodyResponse = await fetch(
+          `https://hub.pinata.cloud/v1/verificationsByAddress?address=${walletAddress}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
           }
+        );
+
+        if (custodyResponse.ok) {
+          const custodyData = await custodyResponse.json();
+          fid = custodyData.fid;
+          console.log(`✓ Found FID ${fid} for wallet: ${walletAddress}`);
+        } else {
+          throw new Error(`No Farcaster account found for this wallet`);
         }
       } catch (err) {
-        console.log("Wallet lookup error:", (err as Error).message);
+        console.error('Wallet search error:', err);
+        return NextResponse.json(
+          {
+            error: "No Farcaster account found for this wallet",
+            steps: [
+              "1. Go to https://warpcast.com",
+              "2. Sign In (top right)",
+              "3. Connect your wallet (same wallet you're using here)",
+              "4. Complete email verification",
+              "5. Go to Settings → Verified Addresses",
+              "6. Click 'Verify an Address'",
+              "7. Sign the message in your wallet",
+              "8. Come back and try again",
+            ],
+            hint: "Your wallet must be verified on Warpcast first",
+            alternative: "Try entering your username instead of using wallet",
+          },
+          { status: 404 }
+        );
       }
     }
 
-    // If still no user found
-    if (!user) {
+    if (!fid) {
       return NextResponse.json(
-        {
-          error: "User not found on Farcaster",
-          steps: [
-            "1. Go to https://warpcast.com",
-            "2. Sign in to your Farcaster account",
-            "3. Verify your username is correct",
-            "4. Make sure your profile is public",
-            "5. Try again with the exact username",
-          ],
-          hint: "Use your exact Farcaster username (without @)",
-          alternative: "You can also connect your wallet first, then click 'Check DNA'",
-        },
+        { error: "Could not find FID for provided information" },
         { status: 404 }
       );
     }
 
-    // Get recent casts
-    let casts = [];
+    // Get user data by FID
     try {
-      const castsUrl = `https://api.neynar.com/v2/farcaster/feed/user/casts?fid=${user.fid}&limit=10`;
-      console.log("Fetching casts...");
+      const response = await fetch(
+        `https://hub.pinata.cloud/v1/userDataByFid?fid=${fid}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      const castsResponse = await fetch(castsUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": NEYNAR_API_KEY,
-        },
-      });
-
-      if (castsResponse.ok) {
-        const castsData = await castsResponse.json();
-        casts = (castsData.casts || []).map((cast: any) => ({
-          hash: cast.hash,
-          text: cast.text,
-          timestamp: cast.timestamp,
-          likeCount: cast.reactions?.likes_count || 0,
-          replyCount: cast.replies?.count || 0,
-        }));
-        console.log(`✓ Found ${casts.length} casts`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
       }
-    } catch (err) {
-      console.log("Casts fetch error (optional):", (err as Error).message);
-      // Casts are optional, don't fail if error
-    }
 
-    return NextResponse.json({
-      success: true,
-      user: {
-        fid: user.fid,
-        username: user.username,
-        displayName: user.display_name || user.username,
-        pfpUrl: user.pfp_url || "",
-        bio: user.profile?.bio || "",
-        followerCount: user.follower_count || 0,
-        followingCount: user.following_count || 0,
-        custodyAddress: user.custody_address,
-        verifiedAddresses: user.verified_addresses || [],
-      },
-      casts: casts,
-      method: farcasterUsername ? "username" : "wallet",
-    });
+      const data = await response.json();
+      
+      // Extract profile data from messages
+      const pfpMessage = data.messages?.find(
+        (msg: any) => msg.data?.userDataBody?.type === 'USER_DATA_TYPE_PFP'
+      );
+      
+      const usernameMessage = data.messages?.find(
+        (msg: any) => msg.data?.userDataBody?.type === 'USER_DATA_TYPE_USERNAME'
+      );
+
+      const displayNameMessage = data.messages?.find(
+        (msg: any) => msg.data?.userDataBody?.type === 'USER_DATA_TYPE_DISPLAY'
+      );
+
+      const bioMessage = data.messages?.find(
+        (msg: any) => msg.data?.userDataBody?.type === 'USER_DATA_TYPE_BIO'
+      );
+
+      // Get casts
+      let casts = [];
+      try {
+        const castsResponse = await fetch(
+          `https://hub.pinata.cloud/v1/castsByFid?fid=${fid}&limit=10`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (castsResponse.ok) {
+          const castsData = await castsResponse.json();
+          casts = (castsData.messages || []).map((cast: any) => ({
+            hash: cast.hash,
+            text: cast.data?.castAddBody?.text || '',
+            timestamp: cast.createdAt,
+            likeCount: 0, // Would need additional API call for reactions
+            replyCount: 0, // Would need additional API call for replies
+          }));
+          console.log(`✓ Found ${casts.length} casts`);
+        }
+      } catch (err) {
+        console.log("Casts fetch error (optional):", (err as Error).message);
+      }
+
+      return NextResponse.json({
+        success: true,
+        user: {
+          fid: fid,
+          username: usernameMessage?.data?.userDataBody?.value || username || 'Unknown',
+          displayName: displayNameMessage?.data?.userDataBody?.value || username || 'Unknown',
+          pfpUrl: pfpMessage?.data?.userDataBody?.value || '',
+          bio: bioMessage?.data?.userDataBody?.value || '',
+          followerCount: 0, // Would need additional API call
+          followingCount: 0, // Would need additional API call
+        },
+        casts: casts,
+        method: farcasterUsername ? "username" : "wallet",
+      });
+    } catch (err) {
+      console.error('Error fetching Farcaster user data:', err);
+      return NextResponse.json(
+        { error: 'Failed to fetch user data' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("Fatal error:", error);
     return NextResponse.json(
