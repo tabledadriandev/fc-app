@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAccount, useConnect, useWalletClient, usePublicClient } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -23,65 +23,74 @@ export default function TANFTMinterPro() {
   const [txHash, setTxHash] = useState("");
   const [usernameInput, setUsernameInput] = useState("");
 
-  // Initialize Farcaster SDK and auto-connect wallet using FID
+  // Initialize Farcaster SDK and auto-connect wallet
   useEffect(() => {
     const initializeSDK = async () => {
       try {
         await sdk.actions.ready();
         
-        // Get user context from Farcaster
+        // Get Ethereum provider from Farcaster SDK (handles wallet automatically)
         try {
-          const context = await sdk.context;
-          if (context?.user?.fid) {
-            // User is in Farcaster - get their wallet address from FID
-            const fid = context.user.fid;
-            
-            // Fetch user data by FID to get wallet address
+          const ethereumProvider = sdk.wallet.getEthereumProvider();
+          
+          if (ethereumProvider && !isConnected) {
+            // Provider is available - try to connect
             try {
-              const userRes = await fetch(`/api/fetch-farcaster-user?fid=${fid}`);
-              if (userRes.ok) {
-                const userData = await userRes.json();
-                
-                // Get wallet address from verifications
-                if (userData.fid) {
-                  // Try to get wallet from Farcaster API
-                  try {
-                    const verificationsRes = await fetch(`https://api.farcaster.xyz/v2/verifications?fid=${fid}`);
-                    if (verificationsRes.ok) {
-                      const verificationsData = await verificationsRes.json();
-                      const walletAddress = verificationsData.result?.verifications?.[0]?.address;
-                      
-                      if (walletAddress && !isConnected) {
-                        // Auto-connect wallet
-                        try {
-                          await connect({ connector: injected() });
-                          // Fetch full user data
-                          await fetchUserData(walletAddress, false);
-                        } catch (connectErr) {
-                          console.log('Auto-connect failed, user can connect manually');
-                        }
-                      }
-                    }
-                  } catch (verifErr) {
-                    console.log('Could not get verifications:', verifErr);
-                  }
-                }
+              // Request accounts to connect (this opens Farcaster wallet if needed)
+              const accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' });
+              if (accounts && accounts.length > 0 && accounts[0]) {
+                // Wallet is connected via Farcaster SDK
+                // Fetch user data using the connected address
+                await fetchUserData(accounts[0], false);
               }
-            } catch (fetchErr) {
-              console.log('Could not auto-fetch user data:', fetchErr);
+            } catch (connectErr) {
+              console.log('Auto-connect via Farcaster wallet failed:', connectErr);
             }
           }
-        } catch (contextErr) {
-          console.log('Could not get Farcaster context:', contextErr);
+        } catch (providerErr) {
+          console.log('Farcaster wallet provider not available:', providerErr);
         }
       } catch (err) {
         console.error('Failed to initialize Farcaster SDK:', err);
       }
     };
     initializeSDK();
-  }, [isConnected, connect]);
+  }, [isConnected, fetchUserData]);
 
-  const fetchUserData = async (walletOrUsername: string, isUsername = false) => {
+  const generateNFT = useCallback(async (pfpUrl: string, username: string) => {
+    setLoading(true);
+    setError("");
+    setStep("generate");
+    
+    try {
+      const res = await fetch("/api/generate-ta-nft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pfpUrl,
+          username,
+          taBalance: 0, // Will be checked during mint if needed
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "NFT generation failed");
+      }
+
+      setNftImageUrl(data.nftImage);
+      setStep("preview");
+    } catch (err) {
+      console.error('Error generating NFT:', err);
+      setError(err instanceof Error ? err.message : 'NFT generation failed');
+      setStep("connect");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchUserData = useCallback(async (walletOrUsername: string, isUsername = false) => {
     setLoading(true);
     setError("");
     setStep("fetch");
@@ -118,40 +127,7 @@ export default function TANFTMinterPro() {
       setLoading(false);
       setStep("connect");
     }
-  };
-
-  const generateNFT = async (pfpUrl: string, username: string) => {
-    setLoading(true);
-    setError("");
-    setStep("generate");
-    
-    try {
-      const res = await fetch("/api/generate-ta-nft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pfpUrl,
-          username,
-          taBalance: 0, // Will be checked during mint if needed
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "NFT generation failed");
-      }
-
-      setNftImageUrl(data.nftImage);
-      setStep("preview");
-    } catch (err) {
-      console.error('Error generating NFT:', err);
-      setError(err instanceof Error ? err.message : 'NFT generation failed');
-      setStep("connect");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [generateNFT]);
 
   const mintNFT = async () => {
     if (!address || !isConnected) {
@@ -260,35 +236,54 @@ export default function TANFTMinterPro() {
         throw new Error(data.error || "Mint preparation failed");
       }
 
-      // Create transaction URL for Farcaster wallet
-      const txUrl = `https://basescan.org/tx/${encodeURIComponent(JSON.stringify({
-        to: data.transaction.to,
-        value: data.transaction.value.toString(),
-        data: data.transaction.data,
-        chainId: data.transaction.chainId,
-      }))}`;
-
-      // Try to open in Farcaster wallet first
+      // Use Farcaster SDK's Ethereum provider for transaction (opens in Farcaster wallet)
+      let hash: string;
+      
       try {
-        await sdk.actions.openUrl(txUrl);
-        // Wait a bit for user to sign
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (urlErr) {
-        console.log('Could not open URL, using direct transaction');
-      }
-
-      // Send transaction - 0.003 ETH to liquidity pool on Base chain
-      const hash = await client.sendTransaction({
-        to: data.transaction.to as `0x${string}`,
-        value: data.transaction.value, // 0.003 ETH
-        account: address as `0x${string}`,
-      });
-
-      setTxHash(hash);
-
-      // Wait for confirmation
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
+        const ethereumProvider = sdk.wallet.getEthereumProvider();
+        
+        if (ethereumProvider) {
+          // Send transaction via Farcaster wallet provider (opens in Farcaster wallet)
+          hash = await ethereumProvider.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: address,
+              to: data.transaction.to,
+              value: `0x${data.transaction.value.toString(16)}`,
+              data: data.transaction.data || '0x',
+              chainId: `0x${data.transaction.chainId.toString(16)}`, // Base chain ID: 8453 = 0x2105
+            }],
+          }) as string;
+          
+          setTxHash(hash);
+          
+          // Wait for confirmation
+          if (publicClient) {
+            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+          }
+        } else {
+          // Fallback to regular wallet client
+          hash = await client.sendTransaction({
+            to: data.transaction.to as `0x${string}`,
+            value: data.transaction.value,
+            account: address as `0x${string}`,
+          });
+          setTxHash(hash);
+          if (publicClient) {
+            await publicClient.waitForTransactionReceipt({ hash });
+          }
+        }
+      } catch (txErr) {
+        // Fallback to regular wallet client if Farcaster provider fails
+        hash = await client.sendTransaction({
+          to: data.transaction.to as `0x${string}`,
+          value: data.transaction.value,
+          account: address as `0x${string}`,
+        });
+        setTxHash(hash);
+        if (publicClient) {
+          await publicClient.waitForTransactionReceipt({ hash });
+        }
       }
 
       // Record mint in database with cast data
