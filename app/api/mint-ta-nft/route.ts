@@ -37,20 +37,20 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // Parse the ETH value
-      const value = parseEther("0.001");
-      console.log('Transaction value parsed:', value.toString());
+      // Parse the ETH value (0.001 ETH = 1000000000000000 wei)
+      const valueWei = parseEther("0.001");
+      console.log('Transaction value parsed (wei):', valueWei.toString());
 
       // Convert BigInt to hex string for JSON serialization
-      // The frontend will convert it back to the proper format
-      const valueHex = `0x${value.toString(16)}`;
+      // Must be a hex string starting with 0x for Ethereum transactions
+      const valueHex = `0x${valueWei.toString(16)}`;
+      console.log('Transaction value (hex):', valueHex);
 
       // Simple transaction - just send ETH to liquidity pool
       // NFT ownership is stored in database, no contract needed
       const transaction = {
         to: LIQUIDITY_POOL as `0x${string}`,
-        value: valueHex, // Send as hex string to avoid BigInt serialization issues
-        valueBigInt: value.toString(), // Also include as string for reference
+        value: valueHex, // Hex string - this is what Ethereum expects
         chainId: 8453,
         data: "0x" as `0x${string}`, // No contract call needed
       };
@@ -61,9 +61,15 @@ export async function POST(req: NextRequest) {
         chainId: transaction.chainId
       });
 
-      return NextResponse.json({
+      // Ensure we're returning a plain object that can be serialized
+      const response = {
         success: true,
-        transaction,
+        transaction: {
+          to: transaction.to,
+          value: transaction.value, // Already a string
+          chainId: transaction.chainId,
+          data: transaction.data,
+        },
         nft: {
           imageUrl: nftImageUrl,
           username,
@@ -72,7 +78,9 @@ export async function POST(req: NextRequest) {
           price: "0.001 ETH",
           destination: "Your Wallet (stored in database) + Liquidity Pool",
         },
-      });
+      };
+
+      return NextResponse.json(response);
     } catch (parseError: any) {
       console.error('Error parsing ether value:', parseError);
       return NextResponse.json(
