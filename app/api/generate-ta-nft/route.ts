@@ -45,6 +45,28 @@ export async function POST(req: NextRequest) {
 
     let nftImageUrl: string;
 
+    // Helper function to run a model with retry logic for rate limits
+    const runModelWithRetry = async (model: `${string}/${string}` | `${string}/${string}:${string}`, input: any, maxRetries = 3): Promise<any> => {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const output = await replicate.run(model, { input });
+          return output;
+        } catch (error: any) {
+          const isRateLimit = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('rate limit') || error?.message?.includes('throttled');
+          const retryAfter = error?.retry_after || (isRateLimit ? Math.pow(2, attempt) * 1000 : 0);
+          
+          if (isRateLimit && attempt < maxRetries - 1) {
+            const waitTime = retryAfter || (Math.pow(2, attempt) * 1000);
+            console.log(`Rate limited, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
+          }
+          throw error;
+        }
+      }
+      throw new Error('Max retries exceeded');
+    };
+
     if (pfpUrl) {
       // Transform user PFP into TA chef NFT portrait
       console.log('Generating NFT from PFP:', pfpUrl);
@@ -55,14 +77,12 @@ export async function POST(req: NextRequest) {
         
         // Model 1: Try stability-ai/sdxl (supports image input)
         try {
-          output = await replicate.run("stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", {
-            input: {
-              image: pfpUrl,
-              prompt: prompt,
-              num_outputs: 1,
-              guidance_scale: 7.5,
-              num_inference_steps: 30,
-            },
+          output = await runModelWithRetry("stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", {
+            image: pfpUrl,
+            prompt: prompt,
+            num_outputs: 1,
+            guidance_scale: 7.5,
+            num_inference_steps: 30,
           });
           console.log('Successfully used stability-ai/sdxl model');
         } catch (err1: any) {
@@ -71,12 +91,10 @@ export async function POST(req: NextRequest) {
           
           // Model 2: Try black-forest-labs/flux-schnell (alternative)
           try {
-            output = await replicate.run("black-forest-labs/flux-schnell", {
-              input: {
-                image: pfpUrl,
-                prompt: prompt,
-                num_outputs: 1,
-              },
+            output = await runModelWithRetry("black-forest-labs/flux-schnell", {
+              image: pfpUrl,
+              prompt: prompt,
+              num_outputs: 1,
             });
             console.log('Successfully used black-forest-labs/flux-schnell model');
           } catch (err2: any) {
@@ -85,13 +103,11 @@ export async function POST(req: NextRequest) {
             
             // Model 3: Try lucataco/sdxl-lightning (fallback - may not support image input)
             try {
-              output = await replicate.run("lucataco/sdxl-lightning", {
-                input: {
-                  prompt: `${prompt}, inspired by the image: ${pfpUrl}`,
-                  num_outputs: 1,
-                  guidance_scale: 3,
-                  num_inference_steps: 4,
-                },
+              output = await runModelWithRetry("lucataco/sdxl-lightning", {
+                prompt: `${prompt}, inspired by the image: ${pfpUrl}`,
+                num_outputs: 1,
+                guidance_scale: 3,
+                num_inference_steps: 4,
               });
               console.log('Successfully used lucataco/sdxl-lightning model (text-only fallback)');
             } catch (err3: any) {
@@ -135,13 +151,11 @@ export async function POST(req: NextRequest) {
         
         // Model 1: Try lucataco/sdxl-lightning (fast and reliable)
         try {
-          output = await replicate.run("lucataco/sdxl-lightning", {
-            input: {
-              prompt: prompt,
-              num_outputs: 1,
-              guidance_scale: 3,
-              num_inference_steps: 4,
-            },
+          output = await runModelWithRetry("lucataco/sdxl-lightning", {
+            prompt: prompt,
+            num_outputs: 1,
+            guidance_scale: 3,
+            num_inference_steps: 4,
           });
           console.log('Successfully used lucataco/sdxl-lightning model');
         } catch (err1: any) {
@@ -150,11 +164,9 @@ export async function POST(req: NextRequest) {
           
           // Model 2: Try black-forest-labs/flux-schnell (alternative)
           try {
-            output = await replicate.run("black-forest-labs/flux-schnell", {
-              input: {
-                prompt: prompt,
-                num_outputs: 1,
-              },
+            output = await runModelWithRetry("black-forest-labs/flux-schnell", {
+              prompt: prompt,
+              num_outputs: 1,
             });
             console.log('Successfully used black-forest-labs/flux-schnell model');
           } catch (err2: any) {
@@ -163,13 +175,11 @@ export async function POST(req: NextRequest) {
             
             // Model 3: Try cjwbw/animagine-xl-3.1 (anime style)
             try {
-              output = await replicate.run("cjwbw/animagine-xl-3.1", {
-                input: {
-                  prompt,
-                  negative_prompt: "blurry, low quality, amateur",
-                  guidance_scale: 8,
-                  num_inference_steps: 35,
-                },
+              output = await runModelWithRetry("cjwbw/animagine-xl-3.1", {
+                prompt,
+                negative_prompt: "blurry, low quality, amateur",
+                guidance_scale: 8,
+                num_inference_steps: 35,
               });
               console.log('Successfully used cjwbw/animagine-xl-3.1 model');
             } catch (err3: any) {
@@ -242,8 +252,10 @@ export async function POST(req: NextRequest) {
       userMessage = "Replicate API token is missing or invalid. Please check your environment variables.";
     } else if (errorMessage.includes("timeout") || errorMessage.includes("time") || errorMessage.includes("504")) {
       userMessage = "Generation timed out. The AI model may be busy. Please try again in a moment.";
-    } else if (errorMessage.includes("429") || errorMessage.includes("rate limit")) {
-      userMessage = "Rate limit exceeded. Please wait a moment and try again.";
+    } else if (errorMessage.includes("429") || errorMessage.includes("rate limit") || errorMessage.includes("throttled")) {
+      const retryAfterMatch = errorMessage.match(/resets in ~(\d+)s/);
+      const retryAfter = retryAfterMatch ? retryAfterMatch[1] : "10";
+      userMessage = `Rate limit exceeded. Your Replicate account has a free tier limit of 6 requests per minute. Please wait ${retryAfter} seconds and try again, or add a payment method to your Replicate account to increase the limit.`;
     } else if (errorMessage.includes("invalid URL") || errorMessage.includes("no image URL")) {
       userMessage = "Failed to generate a valid image. Please ensure your profile picture is accessible.";
     } else if (errorMessage) {
