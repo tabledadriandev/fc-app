@@ -526,7 +526,7 @@ export default function TANFTMinterPro() {
           const valueWithPrefix = (valueHex.startsWith('0x') ? valueHex : `0x${valueHex}`) as `0x${string}`;
           
           // Format chain ID as hex (Base = 8453 = 0x2105)
-          const chainIdHex = `0x${data.transaction.chainId.toString(16)}`;
+          const chainIdHex = `0x${data.transaction.chainId.toString(16)}` as `0x${string}`;
           
           console.log('Transaction data:', {
             from: walletAddress,
