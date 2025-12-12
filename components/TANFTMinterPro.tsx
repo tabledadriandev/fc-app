@@ -175,9 +175,13 @@ export default function TANFTMinterPro() {
 
   // Initialize Farcaster SDK and auto-connect wallet
   useEffect(() => {
+    let mounted = true;
+    
     const initializeSDK = async () => {
       try {
         await sdk.actions.ready();
+        
+        if (!mounted) return;
         
         // Try to get FID from Farcaster SDK context first (most reliable)
         try {
@@ -203,11 +207,11 @@ export default function TANFTMinterPro() {
           
           console.log('Farcaster context:', context);
           
-          if (context?.user?.fid) {
+          if (context?.user?.fid && mounted) {
             const fid = context.user.fid;
             console.log('Got FID from Farcaster context:', fid);
             // Fetch user data by FID (most reliable method)
-            if (!userData) {
+            if (!userData && mounted) {
               await fetchUserData(fid.toString(), false);
             }
             return; // Success, exit early
@@ -218,11 +222,13 @@ export default function TANFTMinterPro() {
           console.error('Error getting FID from context:', contextErr);
         }
         
+        if (!mounted) return;
+        
         // Fallback: Get wallet from Ethereum provider
         try {
           const ethereumProvider = await sdk.wallet.getEthereumProvider();
           
-          if (ethereumProvider) {
+          if (ethereumProvider && mounted) {
             // Provider is available - try to get accounts
             try {
               // Get accounts without requesting (if already connected)
@@ -234,17 +240,17 @@ export default function TANFTMinterPro() {
                 accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' }) as string[];
               }
               
-              if (accounts && accounts.length > 0 && accounts[0]) {
+              if (accounts && accounts.length > 0 && accounts[0] && mounted) {
                 const walletAddress = accounts[0];
                 console.log('Auto-detected wallet from Farcaster:', walletAddress);
                 
                 // If wallet is connected via wagmi, use that address
                 if (isConnected && address && address.toLowerCase() === walletAddress.toLowerCase()) {
                   // Already connected, just fetch user data if we don't have it
-                  if (!userData) {
+                  if (!userData && mounted) {
                     await fetchUserData(walletAddress, false);
                   }
-                } else if (!isConnected) {
+                } else if (!isConnected && mounted) {
                   // Not connected via wagmi yet, but we have Farcaster wallet
                   // Fetch user data directly using Farcaster wallet address
                   await fetchUserData(walletAddress, false);
@@ -261,8 +267,17 @@ export default function TANFTMinterPro() {
         console.error('Failed to initialize Farcaster SDK:', err);
       }
     };
-    initializeSDK();
-  }, [isConnected, address, fetchUserData, userData]);
+    
+    // Use setTimeout to avoid state updates during render
+    const timeoutId = setTimeout(() => {
+      initializeSDK();
+    }, 0);
+    
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [isConnected, address]); // Removed fetchUserData and userData from dependencies to avoid infinite loops
 
   const mintNFT = async () => {
     setLoading(true);
