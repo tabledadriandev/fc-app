@@ -209,10 +209,33 @@ export function TANFTMinterPro() {
               </button>
             ) : (
               <div className="text-right">
-                <p className="text-xs text-slate-600 mb-1">Connected</p>
-                <p className="text-sm font-mono text-slate-900">
-                  {address?.substring(0, 6)}...{address?.substring(-4)}
-                </p>
+                {userProfile ? (
+                  <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2">
+                    {/* Profile Picture */}
+                    <img
+                      src={userProfile.pfpUrl}
+                      alt={userProfile.username}
+                      className="w-8 h-8 rounded-full border border-slate-300"
+                    />
+                    
+                    {/* User Info */}
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        @{userProfile.username}
+                      </p>
+                      <p className="text-xs font-mono text-slate-600">
+                        {address?.substring(0, 6)}...
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-right">
+                    <p className="text-xs text-slate-600 mb-1">Connected</p>
+                    <p className="text-sm font-mono text-slate-900">
+                      {address?.substring(0, 6)}...{address?.substring(-4)}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
