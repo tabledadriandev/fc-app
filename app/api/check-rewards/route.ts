@@ -18,20 +18,47 @@ export async function POST(req: NextRequest) {
     }
 
     // Check user rewards/assessments
-    const { data: assessments, error } = await supabase
-      .from('user_assessments')
-      .select('*')
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
       .eq('wallet_address', walletAddress)
-      .order('created_at', { ascending: false })
+      .single()
 
-    if (error) throw error
+    if (userError && userError.code !== 'PGRST116') throw userError
+
+    let assessments = []
+    let userRewards = null
+
+    if (user) {
+      // Get user assessments
+      const { data: assessmentsData, error: assessmentsError } = await supabase
+        .from('assessments')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (assessmentsError) throw assessmentsError
+
+      // Get user rewards
+      const { data: rewardsData, error: rewardsError } = await supabase
+        .from('user_rewards')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (rewardsError && rewardsError.code !== 'PGRST116') throw rewardsError
+
+      assessments = assessmentsData || []
+      userRewards = rewardsData
+    }
 
     return NextResponse.json({
       success: true,
       rewards: {
         walletAddress,
-        assessments: assessments || [],
-        totalAssessments: assessments?.length || 0,
+        assessments,
+        totalAssessments: assessments.length,
+        userRewards,
       },
     })
   } catch (error) {
