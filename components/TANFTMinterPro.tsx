@@ -21,40 +21,6 @@ export default function TANFTMinterPro() {
   const [txHash, setTxHash] = useState("");
   const [usernameInput, setUsernameInput] = useState("");
 
-  // Initialize Farcaster SDK and auto-connect wallet
-  useEffect(() => {
-    const initializeSDK = async () => {
-      try {
-        await sdk.actions.ready();
-        
-        // Get Ethereum provider from Farcaster SDK (handles wallet automatically)
-        try {
-          const ethereumProvider = await sdk.wallet.getEthereumProvider();
-          
-          if (ethereumProvider && !isConnected) {
-            // Provider is available - try to connect
-            try {
-              // Request accounts to connect (this opens Farcaster wallet if needed)
-              const accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' });
-              if (accounts && accounts.length > 0 && accounts[0]) {
-                // Wallet is connected via Farcaster SDK
-                // Fetch user data using the connected address
-                await fetchUserData(accounts[0], false);
-              }
-            } catch (connectErr) {
-              console.log('Auto-connect via Farcaster wallet failed:', connectErr);
-            }
-          }
-        } catch (providerErr) {
-          console.log('Farcaster wallet provider not available:', providerErr);
-        }
-      } catch (err) {
-        console.error('Failed to initialize Farcaster SDK:', err);
-      }
-    };
-    initializeSDK();
-  }, [isConnected, fetchUserData]);
-
   const generateNFT = useCallback(async (pfpUrl: string, username: string) => {
     setLoading(true);
     setError("");
@@ -126,6 +92,40 @@ export default function TANFTMinterPro() {
       setStep("connect");
     }
   }, [generateNFT]);
+
+  // Initialize Farcaster SDK and auto-connect wallet
+  useEffect(() => {
+    const initializeSDK = async () => {
+      try {
+        await sdk.actions.ready();
+        
+        // Get Ethereum provider from Farcaster SDK (handles wallet automatically)
+        try {
+          const ethereumProvider = await sdk.wallet.getEthereumProvider();
+          
+          if (ethereumProvider && !isConnected) {
+            // Provider is available - try to connect
+            try {
+              // Request accounts to connect (this opens Farcaster wallet if needed)
+              const accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' });
+              if (accounts && accounts.length > 0 && accounts[0]) {
+                // Wallet is connected via Farcaster SDK
+                // Fetch user data using the connected address
+                await fetchUserData(accounts[0], false);
+              }
+            } catch (connectErr) {
+              console.log('Auto-connect via Farcaster wallet failed:', connectErr);
+            }
+          }
+        } catch (providerErr) {
+          console.log('Farcaster wallet provider not available:', providerErr);
+        }
+      } catch (err) {
+        console.error('Failed to initialize Farcaster SDK:', err);
+      }
+    };
+    initializeSDK();
+  }, [isConnected, fetchUserData]);
 
   const mintNFT = async () => {
     if (!address || !isConnected) {
@@ -268,7 +268,7 @@ export default function TANFTMinterPro() {
           });
           setTxHash(hash);
           if (publicClient) {
-            await publicClient.waitForTransactionReceipt({ hash });
+            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
           }
         }
       } catch (txErr) {
@@ -280,7 +280,7 @@ export default function TANFTMinterPro() {
         });
         setTxHash(hash);
         if (publicClient) {
-          await publicClient.waitForTransactionReceipt({ hash });
+          await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
         }
       }
 
