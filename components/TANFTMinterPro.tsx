@@ -20,11 +20,48 @@ export default function TANFTMinterPro() {
   const [error, setError] = useState("");
   const [txHash, setTxHash] = useState("");
   const [usernameInput, setUsernameInput] = useState("");
+  const [generationProgress, setGenerationProgress] = useState<number>(0);
+  const [currentPhrase, setCurrentPhrase] = useState<string>("");
 
   const generateNFT = useCallback(async (pfpUrl: string, username: string, casts: any[] = []) => {
     setLoading(true);
     setError("");
     setStep("generate");
+    setGenerationProgress(0);
+    
+    // Fun dev phrases for progress
+    const phrases = [
+      "Initializing quantum NFT generator...",
+      "Downloading your PFP from the blockchain...",
+      "Analyzing your DeSci vibes...",
+      "Feeding data to the AI hamster wheel...",
+      "Converting pixels to pure art...",
+      "Applying scientific aesthetic filters...",
+      "Summoning Studio Ghibli spirits...",
+      "Rendering your DeSci researcher portrait...",
+      "Adding premium lab attire...",
+      "Polishing the final masterpiece...",
+      "Almost there, just buffing the pixels...",
+    ];
+    
+    let currentPhraseIndex = 0;
+    const updateProgress = () => {
+      if (currentPhraseIndex < phrases.length) {
+        setCurrentPhrase(phrases[currentPhraseIndex]);
+        setGenerationProgress((currentPhraseIndex + 1) * (100 / phrases.length));
+        currentPhraseIndex++;
+      }
+    };
+    
+    // Start progress updates
+    updateProgress();
+    const progressInterval = setInterval(() => {
+      if (currentPhraseIndex < phrases.length) {
+        updateProgress();
+      } else {
+        clearInterval(progressInterval);
+      }
+    }, 2000); // Update every 2 seconds
     
     try {
       const res = await fetch("/api/generate-ta-nft", {
@@ -40,6 +77,10 @@ export default function TANFTMinterPro() {
 
       const data = await res.json();
 
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      setCurrentPhrase("Generation complete! 🎨");
+
       if (!res.ok) {
         const errorMsg = data.details || data.message || data.error || "NFT generation failed";
         console.error('NFT generation API error:', { status: res.status, error: data });
@@ -53,12 +94,15 @@ export default function TANFTMinterPro() {
       setNftImageUrl(data.nftImage);
       setStep("preview");
     } catch (err) {
+      clearInterval(progressInterval);
       console.error('Error generating NFT:', err);
       const errorMessage = err instanceof Error ? err.message : 'NFT generation failed';
       setError(errorMessage);
       setStep("connect");
     } finally {
       setLoading(false);
+      setGenerationProgress(0);
+      setCurrentPhrase("");
     }
   }, []);
 
@@ -449,37 +493,59 @@ export default function TANFTMinterPro() {
         
         if (ethereumProvider) {
           console.log('Sending transaction via Farcaster wallet provider');
+          
+          // First, request accounts to ensure wallet is connected (this opens the modal if needed)
+          try {
+            const accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' }) as string[];
+            if (!accounts || accounts.length === 0) {
+              throw new Error('No accounts available. Please connect your wallet.');
+            }
+            // Update wallet address from the connected account
+            walletAddress = accounts[0] as `0x${string}`;
+            console.log('Wallet connected via Farcaster SDK:', walletAddress);
+          } catch (requestErr: any) {
+            console.error('Error requesting accounts:', requestErr);
+            // If requestAccounts fails, try eth_accounts as fallback
+            try {
+              const accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
+              if (accounts && accounts.length > 0) {
+                walletAddress = accounts[0] as `0x${string}`;
+              } else {
+                throw new Error('Please connect your wallet first');
+              }
+            } catch (accountsErr) {
+              throw new Error('Please connect your wallet first');
+            }
+          }
+          
+          // Ensure value is properly formatted as hex string
+          const valueBigInt = typeof data.transaction.value === 'string' 
+            ? BigInt(data.transaction.value) 
+            : BigInt(data.transaction.value);
+          const valueHex = valueBigInt.toString(16);
+          const valueWithPrefix = (valueHex.startsWith('0x') ? valueHex : `0x${valueHex}`) as `0x${string}`;
+          
+          // Format chain ID as hex (Base = 8453 = 0x2105)
+          const chainIdHex = `0x${data.transaction.chainId.toString(16)}`;
+          
           console.log('Transaction data:', {
             from: walletAddress,
             to: data.transaction.to,
-            value: data.transaction.value.toString(),
-            chainId: data.transaction.chainId
+            value: valueWithPrefix,
+            chainId: chainIdHex,
+            data: data.transaction.data || '0x'
           });
           
-          // Send transaction via Farcaster wallet provider (opens in Farcaster wallet)
+          // Send transaction via Farcaster wallet provider (this opens the modal)
           try {
-            // Ensure value is properly formatted as hex string
-            // data.transaction.value is already a BigInt from parseEther
-            const valueBigInt = typeof data.transaction.value === 'string' 
-              ? BigInt(data.transaction.value) 
-              : BigInt(data.transaction.value);
-            const valueHex = valueBigInt.toString(16);
-            const valueWithPrefix = (valueHex.startsWith('0x') ? valueHex : `0x${valueHex}`) as `0x${string}`;
-            
-            console.log('Transaction value:', {
-              original: data.transaction.value,
-              bigInt: valueBigInt.toString(),
-              hex: valueWithPrefix
-            });
-            
             hash = await ethereumProvider.request({
               method: 'eth_sendTransaction',
               params: [{
                 from: walletAddress as `0x${string}`,
-                to: data.transaction.to,
+                to: data.transaction.to as `0x${string}`,
                 value: valueWithPrefix,
                 data: data.transaction.data || '0x',
-                chainId: `0x${data.transaction.chainId.toString(16)}`, // Base chain ID: 8453 = 0x2105
+                chainId: chainIdHex,
               }],
             }) as string;
             
@@ -699,11 +765,9 @@ export default function TANFTMinterPro() {
           )}
 
           {/* Step: Fetching User Data */}
-          {(step === "fetch" || step === "generate") && (
+          {step === "fetch" && (
             <div className="text-center py-6 sm:py-8">
-              <div className="text-xl sm:text-2xl font-black mb-4">
-                {step === "fetch" ? "FETCHING YOUR PROFILE..." : "GENERATING YOUR NFT..."}
-              </div>
+              <div className="text-xl sm:text-2xl font-black mb-4">FETCHING YOUR PROFILE...</div>
           {userData && (
                 <div className="border-2 border-black p-3 sm:p-4 mb-4 bg-yellow-100">
                   <div className="flex items-center gap-3 sm:gap-4 justify-center flex-wrap">
@@ -721,7 +785,56 @@ export default function TANFTMinterPro() {
                   </div>
                 </div>
               )}
-              <div className="text-xs sm:text-sm text-gray-600 px-4">Using AI to transform your PFP into a Table d'Adrian member in a DeSci universe...</div>
+            </div>
+          )}
+
+          {/* Step: Generating NFT with Progress Bar */}
+          {step === "generate" && (
+            <div className="text-center py-6 sm:py-8">
+              <div className="text-xl sm:text-2xl font-black mb-4">GENERATING YOUR NFT...</div>
+          {userData && (
+                <div className="border-2 border-black p-3 sm:p-4 mb-4 bg-yellow-100">
+                  <div className="flex items-center gap-3 sm:gap-4 justify-center flex-wrap">
+                {userData.pfp_url && (
+                  <img 
+                    src={userData.pfp_url} 
+                    alt="Profile" 
+                        className="w-12 h-12 sm:w-16 sm:h-16 border-2 border-black rounded-full"
+                  />
+                )}
+                <div>
+                      <div className="font-bold text-base sm:text-lg">@{userData.username}</div>
+                      <div className="text-xs sm:text-sm">FID: {userData.fid}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Progress Bar */}
+              <div className="border-2 border-black p-4 sm:p-6 mb-4 bg-gray-50">
+                <div className="text-sm sm:text-base font-bold mb-3 text-gray-800">
+                  {currentPhrase || "Starting generation..."}
+                </div>
+                
+                {/* Progress Bar Container */}
+                <div className="w-full bg-gray-200 border-2 border-black h-6 sm:h-8 mb-2 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 transition-all duration-500 ease-out"
+                    style={{ width: `${generationProgress}%` }}
+                  >
+                    <div className="h-full bg-black opacity-20 animate-pulse"></div>
+                  </div>
+                </div>
+                
+                {/* Progress Percentage */}
+                <div className="text-xs sm:text-sm font-bold text-gray-600">
+                  {Math.round(generationProgress)}%
+                </div>
+              </div>
+              
+              <div className="text-xs sm:text-sm text-gray-600 px-4">
+                Using AI to transform your PFP into a Table d'Adrian member in a DeSci universe...
+              </div>
             </div>
           )}
 
