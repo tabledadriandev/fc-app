@@ -103,15 +103,33 @@ export default function TANFTMinterPro() {
         try {
           const ethereumProvider = await sdk.wallet.getEthereumProvider();
           
-          if (ethereumProvider && !isConnected) {
-            // Provider is available - try to connect
+          if (ethereumProvider) {
+            // Provider is available - try to get accounts
             try {
-              // Request accounts to connect (this opens Farcaster wallet if needed)
-              const accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' });
+              // Get accounts without requesting (if already connected)
+              let accounts: string[] | null = null;
+              try {
+                accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
+              } catch (err) {
+                // If eth_accounts fails, try requesting
+                accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' }) as string[];
+              }
+              
               if (accounts && accounts.length > 0 && accounts[0]) {
-                // Wallet is connected via Farcaster SDK
-                // Fetch user data using the connected address
-                await fetchUserData(accounts[0], false);
+                const walletAddress = accounts[0];
+                console.log('Auto-detected wallet from Farcaster:', walletAddress);
+                
+                // If wallet is connected via wagmi, use that address
+                if (isConnected && address && address.toLowerCase() === walletAddress.toLowerCase()) {
+                  // Already connected, just fetch user data if we don't have it
+                  if (!userData) {
+                    await fetchUserData(walletAddress, false);
+                  }
+                } else if (!isConnected) {
+                  // Not connected via wagmi yet, but we have Farcaster wallet
+                  // Fetch user data directly using Farcaster wallet address
+                  await fetchUserData(walletAddress, false);
+                }
               }
             } catch (connectErr) {
               console.log('Auto-connect via Farcaster wallet failed:', connectErr);
@@ -125,16 +143,33 @@ export default function TANFTMinterPro() {
       }
     };
     initializeSDK();
-  }, [isConnected, fetchUserData]);
+  }, [isConnected, address, fetchUserData, userData]);
 
   const mintNFT = async () => {
-    if (!address || !isConnected) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
     setLoading(true);
     setError("");
+
+    // Get wallet address - try Farcaster SDK first, then wagmi
+    let walletAddress: string | undefined = address;
+    
+    try {
+      const ethereumProvider = await sdk.wallet.getEthereumProvider();
+      if (ethereumProvider) {
+        const accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
+        if (accounts && accounts.length > 0) {
+          walletAddress = accounts[0] as `0x${string}`;
+          console.log('Using wallet from Farcaster SDK:', walletAddress);
+        }
+      }
+    } catch (err) {
+      console.log('Could not get wallet from Farcaster SDK');
+    }
+
+    if (!walletAddress) {
+      setError("Please connect your wallet first");
+      setLoading(false);
+      return;
+    }
 
     // Check if we can use Farcaster SDK provider first (works with any wallet)
     let canUseFarcasterProvider = false;
@@ -169,8 +204,32 @@ export default function TANFTMinterPro() {
     if (!userData || !nftImageUrl) {
       try {
         setStep("fetch");
-        // Fetch user data from wallet
-        const userRes = await fetch(`/api/fetch-farcaster-user?wallet=${address}`);
+        
+        // Try to get wallet address from Farcaster SDK first (more reliable in Farcaster)
+        let walletToUse: string | undefined = address;
+        
+        try {
+          const ethereumProvider = await sdk.wallet.getEthereumProvider();
+          if (ethereumProvider) {
+            const accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
+            if (accounts && accounts.length > 0) {
+              walletToUse = accounts[0] as `0x${string}`;
+              console.log('Using wallet from Farcaster SDK:', walletToUse);
+            }
+          }
+        } catch (sdkErr) {
+          console.log('Could not get wallet from Farcaster SDK, using wagmi address');
+        }
+        
+        if (!walletToUse) {
+          throw new Error('No wallet address found. Please connect your wallet.');
+        }
+        
+        // Fetch user data from wallet - try wallet first, then if that fails, try to get FID from Farcaster
+        let userRes = await fetch(`/api/fetch-farcaster-user?wallet=${walletToUse}`);
+        
+        // If wallet lookup fails, the error will be shown to user
+        // The API will return a helpful error message
         
         if (!userRes.ok) {
           const errorData = await userRes.json().catch(() => ({ error: 'Request failed' }));
@@ -231,7 +290,7 @@ export default function TANFTMinterPro() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          walletAddress: address,
+          walletAddress: walletAddress,
           nftImageUrl,
           username: userData.username,
         }),
@@ -254,7 +313,7 @@ export default function TANFTMinterPro() {
           hash = await ethereumProvider.request({
             method: 'eth_sendTransaction',
             params: [{
-              from: address,
+              from: walletAddress as `0x${string}`,
               to: data.transaction.to,
               value: `0x${data.transaction.value.toString(16)}`,
               data: data.transaction.data || '0x',
@@ -273,7 +332,7 @@ export default function TANFTMinterPro() {
           hash = await client.sendTransaction({
             to: data.transaction.to as `0x${string}`,
             value: data.transaction.value,
-            account: address as `0x${string}`,
+            account: walletAddress as `0x${string}`,
           });
           setTxHash(hash);
           if (publicClient) {
@@ -288,7 +347,7 @@ export default function TANFTMinterPro() {
           hash = await client.sendTransaction({
             to: data.transaction.to as `0x${string}`,
             value: data.transaction.value,
-            account: address as `0x${string}`,
+            account: walletAddress as `0x${string}`,
           });
           setTxHash(hash);
           if (publicClient) {
@@ -304,7 +363,7 @@ export default function TANFTMinterPro() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          walletAddress: address,
+          walletAddress: walletAddress,
           username: userData.username,
           nftImageUrl,
           txHash: hash,
