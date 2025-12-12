@@ -47,7 +47,9 @@
      - Copy your address (looks like: `0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb`)
      - Paste it here - MUST be 42 characters starting with 0x!
    - **Second box** (`_liquidityPool`): 
-     - Paste your liquidity pool address from .env file (`NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS`)
+     - Check your `.env` file for `NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS`
+     - If you don't have it, see `FIND_LIQUIDITY_POOL.md` for how to find it
+     - This is where the 0.003 ETH payments go when people mint
      - Also 42 characters starting with 0x
 6. Click orange "Deploy" button
    
