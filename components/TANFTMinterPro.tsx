@@ -585,13 +585,48 @@ export default function TANFTMinterPro() {
           // Format chain ID as hex (Base = 8453 = 0x2105)
           const chainIdHex = `0x${data.transaction.chainId.toString(16)}` as `0x${string}`;
           
-          const txParams = {
+          // Estimate gas first to ensure transaction will succeed
+          let gasEstimate: string | undefined;
+          try {
+            console.log('Estimating gas for transaction...');
+            gasEstimate = await ethereumProvider.request({
+              method: 'eth_estimateGas',
+              params: [{
+                from: walletAddress as `0x${string}`,
+                to: data.transaction.to as `0x${string}`,
+                value: valueWithPrefix,
+                data: data.transaction.data || '0x',
+              }],
+            }) as string;
+            console.log('Gas estimate:', gasEstimate);
+          } catch (gasErr: any) {
+            console.error('Gas estimation failed:', gasErr);
+            const gasErrorMsg = gasErr?.message || String(gasErr);
+            if (gasErrorMsg.includes('insufficient funds') || gasErrorMsg.includes('insufficient balance')) {
+              throw new Error('Insufficient balance. You need at least 0.001 ETH + gas fees (approximately 0.0001 ETH) in your wallet to mint.');
+            }
+            if (gasErrorMsg.includes('execution reverted') || gasErrorMsg.includes('revert')) {
+              throw new Error('Transaction would fail. Please check that the recipient address is valid and can receive ETH.');
+            }
+            // Continue anyway, gas estimation is optional
+            console.log('Continuing without gas estimate');
+          }
+
+          const txParams: any = {
             from: walletAddress as `0x${string}`,
             to: data.transaction.to as `0x${string}`,
             value: valueWithPrefix,
             data: data.transaction.data || '0x',
             chainId: chainIdHex,
           };
+
+          // Add gas estimate if available (add 20% buffer for safety)
+          if (gasEstimate) {
+            const gasBigInt = BigInt(gasEstimate);
+            const gasWithBuffer = gasBigInt + (gasBigInt * BigInt(20)) / BigInt(100); // 20% buffer
+            txParams.gas = `0x${gasWithBuffer.toString(16)}`;
+            console.log('Using gas estimate with 20% buffer:', txParams.gas);
+          }
           
           console.log('Sending transaction via Farcaster SDK:', txParams);
           
