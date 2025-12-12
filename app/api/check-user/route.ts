@@ -3,10 +3,16 @@ import { createClient } from "@supabase/supabase-js";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!url || !key) {
+    throw new Error('Supabase URL or key missing in environment')
+  }
+  
+  return createClient(url, key)
+}
 
 const publicClient = createPublicClient({
   chain: base,
@@ -46,6 +52,8 @@ export async function POST(req: NextRequest) {
     const taBalance = Number(balance) / 10 ** 18; // Assuming 18 decimals
 
     // Get or create user in database
+    const supabase = getSupabaseClient()
+    
     const { data: user, error: dbError } = await supabase
       .from("users")
       .upsert(
