@@ -432,82 +432,157 @@ export default function TANFTMinterPro() {
       }
 
       // Use Farcaster SDK's Ethereum provider for transaction (opens in Farcaster wallet)
-      let hash: string;
+      let hash: string | undefined;
       
       try {
         const ethereumProvider = await sdk.wallet.getEthereumProvider();
         
         if (ethereumProvider) {
+          console.log('Sending transaction via Farcaster wallet provider');
+          console.log('Transaction data:', {
+            from: walletAddress,
+            to: data.transaction.to,
+            value: data.transaction.value.toString(),
+            chainId: data.transaction.chainId
+          });
+          
           // Send transaction via Farcaster wallet provider (opens in Farcaster wallet)
-          hash = await ethereumProvider.request({
-            method: 'eth_sendTransaction',
-            params: [{
-              from: walletAddress as `0x${string}`,
-              to: data.transaction.to,
-              value: `0x${data.transaction.value.toString(16)}`,
-              data: data.transaction.data || '0x',
-              chainId: `0x${data.transaction.chainId.toString(16)}`, // Base chain ID: 8453 = 0x2105
-            }],
-          }) as string;
-          
-          setTxHash(hash);
-          
-          // Wait for confirmation
-          if (publicClient) {
-            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+          try {
+            hash = await ethereumProvider.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: walletAddress as `0x${string}`,
+                to: data.transaction.to,
+                value: `0x${BigInt(data.transaction.value).toString(16)}`,
+                data: data.transaction.data || '0x',
+                chainId: `0x${data.transaction.chainId.toString(16)}`, // Base chain ID: 8453 = 0x2105
+              }],
+            }) as string;
+            
+            console.log('Transaction sent, hash:', hash);
+            setTxHash(hash);
+            
+            // Wait for confirmation
+            if (publicClient) {
+              console.log('Waiting for transaction confirmation...');
+              await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+              console.log('Transaction confirmed!');
+            }
+          } catch (farcasterErr: any) {
+            console.error('Farcaster provider transaction error:', farcasterErr);
+            throw farcasterErr;
           }
         } else if (client) {
+          console.log('Using wagmi wallet client for transaction');
           // Fallback to regular wallet client
           hash = await client.sendTransaction({
             to: data.transaction.to as `0x${string}`,
             value: data.transaction.value,
             account: walletAddress as `0x${string}`,
           });
+          console.log('Transaction sent via wagmi, hash:', hash);
           setTxHash(hash);
           if (publicClient) {
             await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
           }
         } else {
-          throw new Error("No wallet provider available");
+          throw new Error("No wallet provider available. Please make sure your wallet is connected.");
         }
-      } catch (txErr) {
+      } catch (txErr: any) {
+        console.error('Transaction error:', txErr);
+        
+        // Check for insufficient balance errors
+        const errorMessage = txErr?.message || txErr?.error?.message || String(txErr);
+        const isInsufficientBalance = 
+          errorMessage.includes('insufficient funds') ||
+          errorMessage.includes('insufficient balance') ||
+          errorMessage.includes('Insufficient gas') ||
+          errorMessage.includes('not enough funds') ||
+          errorMessage.includes('exceeds balance') ||
+          txErr?.code === 'INSUFFICIENT_FUNDS' ||
+          txErr?.code === -32000;
+        
+        if (isInsufficientBalance) {
+          throw new Error(`Insufficient balance. You need at least 0.003 ETH + gas fees (approximately 0.0001 ETH) in your wallet to mint. Your current balance is too low. Please fund your wallet and try again.`);
+        }
+        
+        // Check if user rejected the transaction
+        const isRejected = 
+          errorMessage.includes('User rejected') ||
+          errorMessage.includes('user rejected') ||
+          errorMessage.includes('rejected') ||
+          txErr?.code === 4001 ||
+          txErr?.code === 'ACTION_REJECTED';
+        
+        if (isRejected) {
+          throw new Error('Transaction was rejected. Please try again when you\'re ready to confirm.');
+        }
+        
         // Fallback to regular wallet client if Farcaster provider fails
-        if (client) {
-          hash = await client.sendTransaction({
-            to: data.transaction.to as `0x${string}`,
-            value: data.transaction.value,
-            account: walletAddress as `0x${string}`,
-          });
-          setTxHash(hash);
-          if (publicClient) {
-            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+        if (client && hash === undefined) {
+          console.log('Trying fallback with wagmi client');
+          try {
+            hash = await client.sendTransaction({
+              to: data.transaction.to as `0x${string}`,
+              value: data.transaction.value,
+              account: walletAddress as `0x${string}`,
+            });
+            console.log('Fallback transaction sent, hash:', hash);
+            setTxHash(hash);
+            if (publicClient) {
+              await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            }
+          } catch (fallbackErr: any) {
+            console.error('Fallback transaction also failed:', fallbackErr);
+            const fallbackMsg = fallbackErr?.message || fallbackErr?.error?.message || 'Unknown error';
+            const isFallbackInsufficient = 
+              fallbackMsg.includes('insufficient funds') ||
+              fallbackMsg.includes('insufficient balance') ||
+              fallbackMsg.includes('Insufficient gas') ||
+              fallbackMsg.includes('not enough funds');
+            
+            if (isFallbackInsufficient) {
+              throw new Error(`Insufficient balance. You need at least 0.003 ETH + gas fees (approximately 0.0001 ETH) in your wallet to mint. Please fund your wallet and try again.`);
+            }
+            throw new Error(`Transaction failed: ${fallbackMsg}`);
           }
-      } else {
-          throw new Error("Transaction failed: No wallet provider available");
+        } else {
+          throw new Error(`Transaction failed: ${errorMessage}. Please make sure your wallet is connected to Base network and has enough ETH (0.003 ETH + gas fees).`);
         }
       }
 
-      // Record mint in database with cast data
-      await fetch("/api/record-mint", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: walletAddress,
-          username: userData.username,
-          nftImageUrl,
-          txHash: hash,
-          taBalance: 0,
-          castText: castData?.text || null,
-          castHash: castData?.hash || null,
-          castTimestamp: castData?.timestamp || null,
-          pfpUrl: userData.pfp_url || null,
-        }),
-      });
+      if (!hash) {
+        throw new Error("Transaction hash not received. Transaction may have failed.");
+      }
+
+      // Record mint in database with cast data (don't fail if this fails)
+      try {
+        await fetch("/api/record-mint", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: walletAddress,
+            username: userData.username,
+            nftImageUrl,
+            txHash: hash,
+            taBalance: 0,
+            castText: castData?.text || null,
+            castHash: castData?.hash || null,
+            castTimestamp: castData?.timestamp || null,
+            pfpUrl: userData.pfp_url || null,
+          }),
+        });
+        console.log('Mint recorded in database');
+      } catch (dbErr) {
+        console.error('Failed to record mint in database (non-critical):', dbErr);
+        // Don't fail the whole process if database recording fails
+      }
 
       setStep("success");
     } catch (err) {
       console.error('Error minting NFT:', err);
-      setError(err instanceof Error ? err.message : 'Minting failed');
+      const errorMessage = err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Minting failed');
+      setError(errorMessage);
       setStep("preview");
     } finally {
       setLoading(false);
