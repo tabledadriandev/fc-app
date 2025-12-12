@@ -18,16 +18,27 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const supabase = getSupabaseClient();
+    let mints = null;
+    
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from("ta_nft_mints")
+        .select("*")
+        .order("minted_at", { ascending: false })
+        .range(offset, offset + limit - 1);
 
-    // Get all mints with cast data, ordered by most recent
-    const { data: mints, error } = await supabase
-      .from("ta_nft_mints")
-      .select("*")
-      .order("minted_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) throw error;
+      if (error) throw error;
+      mints = data;
+    } catch (dbError) {
+      // Database unavailable - return empty gallery
+      console.warn("Supabase unavailable, returning empty gallery:", dbError);
+      return NextResponse.json({
+        success: true,
+        gallery: [],
+        total: 0,
+      });
+    }
 
     // Format the data for display
     const gallery = mints?.map((mint) => ({

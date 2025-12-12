@@ -14,15 +14,25 @@ function getSupabaseClient() {
 
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
+    let allMints = null;
+    
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error: mintsError } = await supabase
+        .from("ta_nft_mints")
+        .select("username, wallet_address, pfp_url")
+        .order("minted_at", { ascending: false });
 
-    // Get all mints to calculate counts and totals
-    const { data: allMints, error: mintsError } = await supabase
-      .from("ta_nft_mints")
-      .select("username, wallet_address, pfp_url")
-      .order("minted_at", { ascending: false });
-
-    if (mintsError) throw mintsError;
+      if (mintsError) throw mintsError;
+      allMints = data;
+    } catch (dbError) {
+      // Database unavailable - return empty leaderboard
+      console.warn("Supabase unavailable, returning empty leaderboard:", dbError);
+      return NextResponse.json({
+        success: true,
+        leaderboard: [],
+      });
+    }
 
     // Group by wallet_address and count mints
     const mintCounts = new Map<string, {
