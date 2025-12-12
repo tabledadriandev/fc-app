@@ -4,20 +4,27 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username');
   const wallet = searchParams.get('wallet');
+  const fid = searchParams.get('fid');
 
-  console.log('API called with:', { username, wallet });
+  console.log('API called with:', { username, wallet, fid });
 
-  if (!username && !wallet) {
-    return NextResponse.json({ error: 'Username or wallet required' }, { status: 400 });
+  if (!username && !wallet && !fid) {
+    return NextResponse.json({ error: 'Username, wallet, or FID required' }, { status: 400 });
   }
 
   try {
-    let fid: number | null = null;
+    let targetFid: number | null = null;
+
+    // If FID is provided directly, use it
+    if (fid) {
+      targetFid = parseInt(fid);
+      console.log('Using provided FID:', targetFid);
+    }
 
     // Try multiple endpoints for better reliability
 
     // Method 1: Direct username lookup using Farcaster Hub
-    if (username) {
+    if (!targetFid && username) {
       const cleanUsername = username.replace('@', '');
       console.log('Trying direct username lookup for:', cleanUsername);
 
@@ -27,8 +34,8 @@ export async function GET(request: Request) {
         if (hubRes.ok) {
           const hubData = await hubRes.json();
           if (hubData.user) {
-            fid = hubData.user.fid;
-            console.log('Found FID via Hub API:', fid);
+            targetFid = hubData.user.fid;
+            console.log('Found FID via Hub API:', targetFid);
           }
         }
       } catch (err) {
@@ -36,13 +43,13 @@ export async function GET(request: Request) {
       }
 
       // Fallback: Try Fname registry
-      if (!fid) {
+      if (!targetFid) {
         try {
           const fnameRes = await fetch(`https://fnames.farcaster.xyz/transfers/current?name=${cleanUsername}`);
           if (fnameRes.ok) {
             const fnameData = await fnameRes.json();
-            fid = fnameData.transfers?.[0]?.to || null;
-            console.log('Found FID via Fname registry:', fid);
+            targetFid = fnameData.transfers?.[0]?.to || null;
+            console.log('Found FID via Fname registry:', targetFid);
           }
         } catch (err) {
           console.log('Fname registry failed');
@@ -51,7 +58,7 @@ export async function GET(request: Request) {
     }
 
     // Method 2: Wallet lookup
-    if (!fid && wallet) {
+    if (!targetFid && wallet) {
       console.log('Trying wallet lookup for:', wallet);
 
       try {
@@ -59,21 +66,21 @@ export async function GET(request: Request) {
         const pinataRes = await fetch(`https://hub.pinata.cloud/v1/verificationsByAddress?address=${wallet}`);
         if (pinataRes.ok) {
           const pinataData = await pinataRes.json();
-          fid = pinataData.messages?.[0]?.data?.fid || null;
-          console.log('Found FID via Pinata:', fid);
+          targetFid = pinataData.messages?.[0]?.data?.fid || null;
+          console.log('Found FID via Pinata:', targetFid);
         }
       } catch (err) {
         console.log('Pinata lookup failed');
       }
 
       // Fallback: Try direct Hub API
-      if (!fid) {
+      if (!targetFid) {
         try {
           const hubWalletRes = await fetch(`https://api.farcaster.xyz/v2/verifications?address=${wallet}`);
           if (hubWalletRes.ok) {
             const hubWalletData = await hubWalletRes.json();
-            fid = hubWalletData.verifications?.[0]?.fid || null;
-            console.log('Found FID via Hub wallet API:', fid);
+            targetFid = hubWalletData.result?.verifications?.[0]?.fid || null;
+            console.log('Found FID via Hub wallet API:', targetFid);
           }
         } catch (err) {
           console.log('Hub wallet API failed');
@@ -81,8 +88,8 @@ export async function GET(request: Request) {
       }
     }
 
-    if (!fid) {
-      console.log('No FID found for:', { username, wallet });
+    if (!targetFid) {
+      console.log('No FID found for:', { username, wallet, fid });
       return NextResponse.json({
         error: 'User not found. Please check your username or ensure your wallet is connected to Farcaster.',
         details: 'Try your exact Farcaster username (without @) or make sure your wallet is verified on Warpcast.'
@@ -92,9 +99,22 @@ export async function GET(request: Request) {
     // Get user data - try multiple sources
     let userData: { user?: { username?: string; display_name?: string; pfp_url?: string; bio?: string } } | null = null;
 
+    // Get wallet address from verifications
+    let walletAddress = wallet || null;
+    try {
+      const verificationsRes = await fetch(`https://api.farcaster.xyz/v2/verifications?fid=${targetFid}`);
+      if (verificationsRes.ok) {
+        const verificationsData = await verificationsRes.json();
+        walletAddress = verificationsData.result?.verifications?.[0]?.address || walletAddress;
+        console.log('Got wallet address:', walletAddress);
+      }
+    } catch (err) {
+      console.log('Could not get verifications');
+    }
+
     try {
       // Try official Farcaster API first
-      const userRes = await fetch(`https://api.farcaster.xyz/v2/user?fid=${fid}`);
+      const userRes = await fetch(`https://api.farcaster.xyz/v2/user?fid=${targetFid}`);
       if (userRes.ok) {
         userData = await userRes.json();
         console.log('Got user data from official API');
@@ -106,7 +126,7 @@ export async function GET(request: Request) {
     // Fallback to Pinata
     if (!userData) {
       try {
-        const pinataUserRes = await fetch(`https://hub.pinata.cloud/v1/userDataByFid?fid=${fid}`);
+        const pinataUserRes = await fetch(`https://hub.pinata.cloud/v1/userDataByFid?fid=${targetFid}`);
         if (pinataUserRes.ok) {
           const pinataData = await pinataUserRes.json();
           userData = { user: {} };
@@ -142,12 +162,13 @@ export async function GET(request: Request) {
     }
 
     const result = {
-      fid,
+      fid: targetFid,
       username: userData.user.username || username || 'Unknown',
       display_name: userData.user.display_name || userData.user.username || null,
       pfp_url: userData.user.pfp_url || null,
       bio: userData.user.bio || null,
-      method: username ? 'username' : 'wallet'
+      wallet_address: walletAddress,
+      method: fid ? 'fid' : (username ? 'username' : 'wallet')
     };
 
     console.log('Returning:', result);
