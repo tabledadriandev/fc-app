@@ -136,22 +136,31 @@ export default function TANFTMinterPro() {
     setLoading(true);
     setError("");
 
-    // Get wallet client - use the hook value or wait a moment
+    // Check if we can use Farcaster SDK provider first (works with any wallet)
+    let canUseFarcasterProvider = false;
+    try {
+      const ethereumProvider = await sdk.wallet.getEthereumProvider();
+      canUseFarcasterProvider = !!ethereumProvider;
+    } catch (err) {
+      console.log('Farcaster provider not available, will use wagmi client');
+    }
+
+    // Get wallet client as fallback - use the hook value or wait a moment
     let client = walletClient;
     
-    // If walletClient is not ready, wait a bit for it to initialize
-    if (!client) {
+    // If walletClient is not ready and we can't use Farcaster provider, wait a bit
+    if (!client && !canUseFarcasterProvider) {
       // Wait up to 2 seconds for wallet client to be ready
       for (let i = 0; i < 20; i++) {
         await new Promise(resolve => setTimeout(resolve, 100));
-        // Re-check if walletClient is now available (it updates via hook)
-        // We'll use the hook value directly below
+        client = walletClient; // Re-check after waiting
+        if (client) break;
       }
-      client = walletClient; // Re-check after waiting
     }
 
-    if (!client) {
-      setError("Wallet not ready. Please make sure MetaMask is connected to Base network and refresh the page.");
+    // If neither Farcaster provider nor wagmi client is available, show error
+    if (!client && !canUseFarcasterProvider) {
+      setError("Wallet not ready. Please make sure your wallet is connected to Base network and try again.");
       setLoading(false);
       return;
     }
@@ -259,7 +268,7 @@ export default function TANFTMinterPro() {
           if (publicClient) {
             await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
           }
-        } else {
+        } else if (client) {
           // Fallback to regular wallet client
           hash = await client.sendTransaction({
             to: data.transaction.to as `0x${string}`,
@@ -270,17 +279,23 @@ export default function TANFTMinterPro() {
           if (publicClient) {
             await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
           }
+        } else {
+          throw new Error("No wallet provider available");
         }
       } catch (txErr) {
         // Fallback to regular wallet client if Farcaster provider fails
-        hash = await client.sendTransaction({
-          to: data.transaction.to as `0x${string}`,
-          value: data.transaction.value,
-          account: address as `0x${string}`,
-        });
-        setTxHash(hash);
-        if (publicClient) {
-          await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+        if (client) {
+          hash = await client.sendTransaction({
+            to: data.transaction.to as `0x${string}`,
+            value: data.transaction.value,
+            account: address as `0x${string}`,
+          });
+          setTxHash(hash);
+          if (publicClient) {
+            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+          }
+        } else {
+          throw new Error("Transaction failed: No wallet provider available");
         }
       }
 
