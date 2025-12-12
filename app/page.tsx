@@ -1,4 +1,4 @@
-import { TANFTMinterPro } from "@/components/TANFTMinterPro";
+import TANFTMinterPro from "@/components/TANFTMinterPro";
 
 export default function Home() {
   return <TANFTMinterPro />;
