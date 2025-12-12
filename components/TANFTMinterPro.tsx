@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useAccount, useConnect } from "wagmi";
+import { injected } from "wagmi/connectors";
 
 export default function TANFTMinterPro() {
+  const { address, isConnected } = useAccount();
+  const { connect } = useConnect();
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -12,7 +16,16 @@ export default function TANFTMinterPro() {
     setError("");
     
     try {
-      const res = await fetch('/api/fetch-farcaster-user?username=adriantable');
+      let apiUrl = '/api/fetch-farcaster-user?';
+      
+      // Use wallet address if connected, otherwise use default username
+      if (isConnected && address) {
+        apiUrl += `wallet=${address}`;
+      } else {
+        apiUrl += 'username=adriantable';
+      }
+      
+      const res = await fetch(apiUrl);
       const data = await res.json();
       
       if (res.ok) {
@@ -40,6 +53,30 @@ export default function TANFTMinterPro() {
         {/* Main Card */}
         <div className="border-4 border-black p-8 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
           
+          {/* Wallet Status */}
+          <div className="mb-6">
+            {!isConnected ? (
+              <button
+                onClick={() => connect({ connector: injected() })}
+                className="w-full bg-black text-white border-2 border-black p-4 text-lg font-black
+                         hover:bg-white hover:text-black transition-all duration-200
+                         active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                         mb-4"
+              >
+                CONNECT WALLET
+              </button>
+            ) : (
+              <div className="border-2 border-black p-4 bg-green-100 mb-4">
+                <div className="flex justify-between items-center">
+                  <div className="font-bold">WALLET CONNECTED</div>
+                  <div className="font-mono text-sm">
+                    {address?.substring(0, 6)}...{address?.substring(-4)}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Info Grid */}
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="border-2 border-black p-4">
@@ -94,12 +131,12 @@ export default function TANFTMinterPro() {
           <button
             onClick={checkDNA}
             disabled={loading}
-            className="w-full bg-black text-white border-4 border-black p-6 text-xl font-black 
-                     hover:bg-white hover:text-black transition-all duration-200 
+            className="w-full bg-black text-white border-4 border-black p-6 text-xl font-black
+                     hover:bg-white hover:text-black transition-all duration-200
                      active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
                      disabled:opacity-50"
           >
-            {loading ? 'CHECKING...' : 'CHECK YOUR DNA'}
+            {loading ? 'CHECKING...' : isConnected ? 'CHECK YOUR DNA WITH WALLET' : 'CHECK YOUR DNA'}
           </button>
 
           {/* Contract Link */}
