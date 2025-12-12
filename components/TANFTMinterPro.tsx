@@ -45,6 +45,8 @@ export function TANFTMinterPro() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [recentMints, setRecentMints] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userCasts, setUserCasts] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalMints: 0,
     totalVolume: 0,
@@ -293,39 +295,147 @@ export function TANFTMinterPro() {
                     </div>
                   ) : (
                     <>
-                      <div className="mb-4">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">
-                          Username
-                        </label>
-                        <input
-                          type="text"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          placeholder="@yourname"
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:border-slate-900 focus:outline-none"
-                        />
-                      </div>
+                      {!userProfile ? (
+                        // Before checking DNA: Show only Check DNA button
+                        <button
+                          onClick={async () => {
+                            setLoading(true);
+                            setError("");
 
-                      <div className="mb-6">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">
-                          Profile Picture URL (optional)
-                        </label>
-                        <input
-                          type="text"
-                          value={pfpUrl || ""}
-                          onChange={(e) => setPfpUrl(e.target.value || null)}
-                          placeholder="https://..."
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:border-slate-900 focus:outline-none"
-                        />
-                      </div>
+                            try {
+                              const res = await fetch("/api/fetch-farcaster-user", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  walletAddress: address,
+                                }),
+                              });
 
-                      <button
-                        onClick={checkUser}
-                        disabled={loading || !username}
-                        className="w-full px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
-                      >
-                        {loading ? "Checking..." : "Check User & DNA"}
-                      </button>
+                              const data = await res.json();
+
+                              if (!res.ok) throw new Error(data.error);
+
+                              setUserProfile(data.user);
+                              setUserCasts(data.casts);
+                              setUsername(data.user.username);
+                              setTaBalance(0); // Will be fetched in check-user
+                            } catch (err) {
+                              setError((err as Error).message);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          disabled={loading}
+                          className="w-full px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                        >
+                          {loading ? "Checking DNA..." : "Check DNA"}
+                        </button>
+                      ) : (
+                        // After checking DNA: Show user profile + casts
+                        <>
+                          {/* User Profile Card */}
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6">
+                            <div className="flex items-start gap-4">
+                              {/* PFP */}
+                              <img
+                                src={userProfile.pfpUrl}
+                                alt={userProfile.username}
+                                className="w-16 h-16 rounded-full border-2 border-slate-200"
+                              />
+
+                              {/* User Info */}
+                              <div className="flex-1">
+                                <p className="font-bold text-slate-900">
+                                  @{userProfile.username}
+                                </p>
+                                <p className="text-sm text-slate-600 mb-2">
+                                  {userProfile.displayName}
+                                </p>
+                                {userProfile.bio && (
+                                  <p className="text-xs text-slate-600 mb-2">
+                                    {userProfile.bio}
+                                  </p>
+                                )}
+                                <div className="flex gap-4 text-xs text-slate-600">
+                                  <span>{userProfile.followerCount} followers</span>
+                                  <span>{userProfile.followingCount} following</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Recent Casts */}
+                          {userCasts.length > 0 && (
+                            <div className="mb-6">
+                              <p className="text-xs font-semibold text-slate-600 mb-3">
+                                Recent Casts
+                              </p>
+                              <div className="space-y-2 max-h-40 overflow-y-auto">
+                                {userCasts.map((cast) => (
+                                  <div
+                                    key={cast.hash}
+                                    className="bg-slate-50 border border-slate-100 rounded p-3 text-xs"
+                                  >
+                                    <p className="text-slate-900 mb-1 line-clamp-2">
+                                      {cast.text}
+                                    </p>
+                                    <div className="flex gap-3 text-slate-600">
+                                      <span>❤️ {cast.likeCount}</span>
+                                      <span>💬 {cast.replyCount}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Confirm and Continue Button */}
+                          <button
+                            onClick={async () => {
+                              setLoading(true);
+                              setError("");
+
+                              try {
+                                const res = await fetch("/api/check-user", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    walletAddress: address,
+                                    farcasterUsername: userProfile.username,
+                                    pfpUrl: userProfile.pfpUrl,
+                                  }),
+                                });
+
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.error);
+
+                                setTaBalance(data.user.taBalance);
+                                setStep("generate");
+                              } catch (err) {
+                                setError((err as Error).message);
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                            disabled={loading}
+                            className="w-full px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                          >
+                            {loading ? "Checking..." : "Confirm & Generate NFT"}
+                          </button>
+
+                          {/* Change User Button */}
+                          <button
+                            onClick={() => {
+                              setUserProfile(null);
+                              setUserCasts([]);
+                              setUsername("");
+                            }}
+                            className="w-full px-4 py-2.5 mt-3 text-slate-600 border border-slate-200 font-semibold rounded-lg hover:bg-slate-50 transition-colors"
+                          >
+                            Change User
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -411,6 +521,8 @@ export function TANFTMinterPro() {
                       setPfpUrl(null);
                       setNftImageUrl(null);
                       setTxHash("");
+                      setUserProfile(null);
+                      setUserCasts([]);
                     }}
                     className="w-full px-4 py-2.5 mt-4 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-colors"
                   >
