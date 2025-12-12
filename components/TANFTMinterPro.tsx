@@ -109,8 +109,13 @@ export default function TANFTMinterPro() {
       }
       
       // Automatically generate NFT from PFP and casts
+      // Add cache busting to ensure we get the latest PFP
       if (data.pfp_url) {
-        await generateNFT(data.pfp_url, data.username, castsData?.casts || []);
+        const pfpUrlWithCache = data.pfp_url.includes('?') 
+          ? `${data.pfp_url}&_t=${Date.now()}` 
+          : `${data.pfp_url}?_t=${Date.now()}`;
+        console.log('Generating NFT with PFP URL:', pfpUrlWithCache);
+        await generateNFT(pfpUrlWithCache, data.username, castsData?.casts || []);
       } else {
         setError('No profile picture found. Please ensure your Farcaster profile has a PFP.');
         setLoading(false);
@@ -368,9 +373,14 @@ export default function TANFTMinterPro() {
         }
         
         // Generate NFT from PFP and casts if we don't have one yet
+        // Add cache busting to ensure we get the latest PFP
         if (!nftImageUrl && fetchedUserData.pfp_url) {
           setStep("generate");
-          await generateNFT(fetchedUserData.pfp_url, fetchedUserData.username, castsData?.casts || []);
+          const pfpUrlWithCache = fetchedUserData.pfp_url.includes('?') 
+            ? `${fetchedUserData.pfp_url}&_t=${Date.now()}` 
+            : `${fetchedUserData.pfp_url}?_t=${Date.now()}`;
+          console.log('Generating NFT with PFP URL (mint flow):', pfpUrlWithCache);
+          await generateNFT(pfpUrlWithCache, fetchedUserData.username, castsData?.casts || []);
         } else if (!fetchedUserData.pfp_url) {
           throw new Error('No profile picture found. Please ensure your Farcaster profile has a PFP.');
         }
@@ -454,7 +464,7 @@ export default function TANFTMinterPro() {
               ? BigInt(data.transaction.value) 
               : BigInt(data.transaction.value);
             const valueHex = valueBigInt.toString(16);
-            const valueWithPrefix = valueHex.startsWith('0x') ? valueHex : `0x${valueHex}`;
+            const valueWithPrefix = (valueHex.startsWith('0x') ? valueHex : `0x${valueHex}`) as `0x${string}`;
             
             console.log('Transaction value:', {
               original: data.transaction.value,
