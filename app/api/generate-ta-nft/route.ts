@@ -49,15 +49,62 @@ export async function POST(req: NextRequest) {
       // Transform user PFP into TA chef NFT portrait
       console.log('Generating NFT from PFP:', pfpUrl);
       try {
-        const output = await replicate.run("aaronaftab/mirage-ghibli", {
-          input: {
-            image: pfpUrl,
-            prompt,
-            strength: 0.75,
-            guidance_scale: 8,
-            num_inference_steps: 35,
-          },
-        });
+        // Try multiple models that support image-to-image transformation
+        let output: any = null;
+        let lastError: any = null;
+        
+        // Model 1: Try stability-ai/sdxl (supports image input)
+        try {
+          output = await replicate.run("stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", {
+            input: {
+              image: pfpUrl,
+              prompt: prompt,
+              num_outputs: 1,
+              guidance_scale: 7.5,
+              num_inference_steps: 30,
+            },
+          });
+          console.log('Successfully used stability-ai/sdxl model');
+        } catch (err1: any) {
+          console.log('Model stability-ai/sdxl failed, trying alternative:', err1?.message);
+          lastError = err1;
+          
+          // Model 2: Try black-forest-labs/flux-schnell (alternative)
+          try {
+            output = await replicate.run("black-forest-labs/flux-schnell", {
+              input: {
+                image: pfpUrl,
+                prompt: prompt,
+                num_outputs: 1,
+              },
+            });
+            console.log('Successfully used black-forest-labs/flux-schnell model');
+          } catch (err2: any) {
+            console.log('Model black-forest-labs/flux-schnell failed, trying alternative:', err2?.message);
+            lastError = err2;
+            
+            // Model 3: Try lucataco/sdxl-lightning (fallback - may not support image input)
+            try {
+              output = await replicate.run("lucataco/sdxl-lightning", {
+                input: {
+                  prompt: `${prompt}, inspired by the image: ${pfpUrl}`,
+                  num_outputs: 1,
+                  guidance_scale: 3,
+                  num_inference_steps: 4,
+                },
+              });
+              console.log('Successfully used lucataco/sdxl-lightning model (text-only fallback)');
+            } catch (err3: any) {
+              console.log('All models failed, using last error:', err3?.message);
+              lastError = err3;
+              throw new Error(`All Replicate models failed. Last error: ${err3?.message || 'Unknown error'}`);
+            }
+          }
+        }
+        
+        if (!output) {
+          throw lastError || new Error('No output from Replicate API');
+        }
         console.log('Replicate output type:', typeof output, 'Is array:', Array.isArray(output), 'Output:', output);
         
         // Handle different output formats
@@ -82,14 +129,60 @@ export async function POST(req: NextRequest) {
       // Generate from scratch
       console.log('Generating NFT from scratch');
       try {
-        const output = await replicate.run("cjwbw/animagine-xl-3.1", {
-          input: {
-            prompt,
-            negative_prompt: "blurry, low quality, amateur",
-            guidance_scale: 8,
-            num_inference_steps: 35,
-          },
-        });
+        // Try multiple models for reliability
+        let output: any = null;
+        let lastError: any = null;
+        
+        // Model 1: Try lucataco/sdxl-lightning (fast and reliable)
+        try {
+          output = await replicate.run("lucataco/sdxl-lightning", {
+            input: {
+              prompt: prompt,
+              num_outputs: 1,
+              guidance_scale: 3,
+              num_inference_steps: 4,
+            },
+          });
+          console.log('Successfully used lucataco/sdxl-lightning model');
+        } catch (err1: any) {
+          console.log('Model lucataco/sdxl-lightning failed, trying alternative:', err1?.message);
+          lastError = err1;
+          
+          // Model 2: Try black-forest-labs/flux-schnell (alternative)
+          try {
+            output = await replicate.run("black-forest-labs/flux-schnell", {
+              input: {
+                prompt: prompt,
+                num_outputs: 1,
+              },
+            });
+            console.log('Successfully used black-forest-labs/flux-schnell model');
+          } catch (err2: any) {
+            console.log('Model black-forest-labs/flux-schnell failed, trying alternative:', err2?.message);
+            lastError = err2;
+            
+            // Model 3: Try cjwbw/animagine-xl-3.1 (anime style)
+            try {
+              output = await replicate.run("cjwbw/animagine-xl-3.1", {
+                input: {
+                  prompt,
+                  negative_prompt: "blurry, low quality, amateur",
+                  guidance_scale: 8,
+                  num_inference_steps: 35,
+                },
+              });
+              console.log('Successfully used cjwbw/animagine-xl-3.1 model');
+            } catch (err3: any) {
+              console.log('All models failed, using last error:', err3?.message);
+              lastError = err3;
+              throw new Error(`All Replicate models failed. Last error: ${err3?.message || 'Unknown error'}`);
+            }
+          }
+        }
+        
+        if (!output) {
+          throw lastError || new Error('No output from Replicate API');
+        }
         console.log('Replicate output type:', typeof output, 'Is array:', Array.isArray(output), 'Output:', output);
         
         // Handle different output formats
