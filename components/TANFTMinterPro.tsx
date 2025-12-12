@@ -503,10 +503,19 @@ export default function TANFTMinterPro() {
         // Always try Farcaster SDK provider first (this opens the modal)
         let ethereumProvider = null;
         try {
+          // Ensure SDK is ready
+          await sdk.actions.ready();
+          console.log('SDK ready, getting Ethereum provider...');
+          
           ethereumProvider = await sdk.wallet.getEthereumProvider();
           console.log('Farcaster SDK provider available:', !!ethereumProvider);
-        } catch (sdkErr) {
-          console.log('Could not get Farcaster SDK provider:', sdkErr);
+          
+          if (!ethereumProvider) {
+            throw new Error('Farcaster wallet provider not available');
+          }
+        } catch (sdkErr: any) {
+          console.error('Could not get Farcaster SDK provider:', sdkErr);
+          throw new Error(`Farcaster wallet not available: ${sdkErr?.message || 'Please make sure you are using the Farcaster app'}`);
         }
         
         if (ethereumProvider) {
@@ -515,17 +524,18 @@ export default function TANFTMinterPro() {
           // First, request accounts to ensure wallet is connected (this opens the modal if needed)
           let accounts: string[] = [];
           try {
-            console.log('Requesting accounts via Farcaster SDK...');
+            console.log('Requesting accounts via Farcaster SDK (this may open wallet modal)...');
             accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' }) as string[];
             console.log('Accounts received:', accounts);
             
             if (!accounts || accounts.length === 0) {
-              // Try eth_accounts as fallback
+              // Try eth_accounts as fallback (doesn't open modal, but checks if already connected)
+              console.log('No accounts from eth_requestAccounts, trying eth_accounts...');
               accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
               console.log('Accounts from eth_accounts:', accounts);
               
               if (!accounts || accounts.length === 0) {
-                throw new Error('No accounts available. Please connect your wallet in the Farcaster app.');
+                throw new Error('No wallet connected. Please connect your wallet in the Farcaster app first.');
               }
             }
             
@@ -534,7 +544,11 @@ export default function TANFTMinterPro() {
             console.log('Wallet address from Farcaster SDK:', walletAddress);
           } catch (requestErr: any) {
             console.error('Error requesting accounts:', requestErr);
-            throw new Error(`Failed to connect wallet: ${requestErr?.message || 'Please connect your wallet in the Farcaster app'}`);
+            const errorMsg = requestErr?.message || 'Unknown error';
+            if (errorMsg.includes('rejected') || errorMsg.includes('denied') || requestErr?.code === 4001) {
+              throw new Error('Wallet connection was rejected. Please try again and approve the connection.');
+            }
+            throw new Error(`Failed to connect wallet: ${errorMsg}`);
           }
           
           // Ensure value is properly formatted as hex string
@@ -560,10 +574,17 @@ export default function TANFTMinterPro() {
           // Send transaction via Farcaster wallet provider (this should open the modal)
           try {
             console.log('Calling eth_sendTransaction - this should open the Farcaster wallet modal...');
+            console.log('Transaction params:', JSON.stringify(txParams, null, 2));
+            
+            // The eth_sendTransaction call should automatically open the Farcaster wallet modal
             hash = await ethereumProvider.request({
               method: 'eth_sendTransaction',
               params: [txParams],
             }) as string;
+            
+            if (!hash || hash === 'null' || hash === 'undefined') {
+              throw new Error('Transaction hash not received. The transaction may have been rejected or failed.');
+            }
             
             console.log('Transaction sent successfully, hash:', hash);
             setTxHash(hash);
@@ -577,14 +598,21 @@ export default function TANFTMinterPro() {
           } catch (farcasterErr: any) {
             console.error('Farcaster provider transaction error:', farcasterErr);
             const errorMsg = farcasterErr?.message || farcasterErr?.error?.message || String(farcasterErr);
+            const errorCode = farcasterErr?.code || farcasterErr?.error?.code;
+            console.error('Error code:', errorCode);
             console.error('Full error:', JSON.stringify(farcasterErr, null, 2));
             
             // Check if it's a user rejection
-            if (errorMsg.includes('rejected') || errorMsg.includes('denied') || farcasterErr?.code === 4001) {
+            if (errorMsg.includes('rejected') || errorMsg.includes('denied') || errorMsg.includes('User rejected') || errorCode === 4001 || errorCode === 'ACTION_REJECTED') {
               throw new Error('Transaction was rejected. Please try again when you\'re ready to confirm.');
             }
             
-            throw farcasterErr;
+            // Check if modal didn't open (provider error)
+            if (errorMsg.includes('provider') || errorMsg.includes('not available') || errorMsg.includes('not found')) {
+              throw new Error('Farcaster wallet is not available. Please make sure you are using the Farcaster app and your wallet is connected.');
+            }
+            
+            throw new Error(`Transaction failed: ${errorMsg}. Please check the browser console for more details.`);
           }
         } else if (client) {
           console.log('Using wagmi wallet client for transaction');
