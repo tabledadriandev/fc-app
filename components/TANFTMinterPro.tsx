@@ -54,16 +54,22 @@ export default function TANFTMinterPro() {
     }
   }, []);
 
-  const fetchUserData = useCallback(async (walletOrUsername: string, isUsername = false) => {
+  const fetchUserData = useCallback(async (walletOrUsernameOrFid: string, isUsername = false) => {
     setLoading(true);
     setError("");
     setStep("fetch");
     
     try {
-      const apiUrl = isUsername 
-        ? `/api/fetch-farcaster-user?username=${encodeURIComponent(walletOrUsername)}`
-        : `/api/fetch-farcaster-user?wallet=${walletOrUsername}`;
+      // Check if it's a numeric FID (FIDs are numbers)
+      const isFid = !isNaN(Number(walletOrUsernameOrFid)) && Number(walletOrUsernameOrFid) > 0;
       
+      const apiUrl = isFid
+        ? `/api/fetch-farcaster-user?fid=${walletOrUsernameOrFid}`
+        : isUsername 
+        ? `/api/fetch-farcaster-user?username=${encodeURIComponent(walletOrUsernameOrFid)}`
+        : `/api/fetch-farcaster-user?wallet=${walletOrUsernameOrFid}`;
+      
+      console.log('Fetching user data from:', apiUrl);
       const res = await fetch(apiUrl);
       
       if (!res.ok) {
@@ -99,7 +105,23 @@ export default function TANFTMinterPro() {
       try {
         await sdk.actions.ready();
         
-        // Get Ethereum provider from Farcaster SDK (handles wallet automatically)
+        // Try to get FID from Farcaster SDK context first (most reliable)
+        try {
+          const context = await sdk.context;
+          if (context?.user?.fid) {
+            const fid = context.user.fid;
+            console.log('Got FID from Farcaster context:', fid);
+            // Fetch user data by FID (most reliable method)
+            if (!userData) {
+              await fetchUserData(fid.toString(), false);
+            }
+            return; // Success, exit early
+          }
+        } catch (contextErr) {
+          console.log('Could not get FID from context, trying wallet:', contextErr);
+        }
+        
+        // Fallback: Get wallet from Ethereum provider
         try {
           const ethereumProvider = await sdk.wallet.getEthereumProvider();
           
@@ -205,38 +227,55 @@ export default function TANFTMinterPro() {
       try {
         setStep("fetch");
         
-        // Try to get wallet address from Farcaster SDK first (more reliable in Farcaster)
-        let walletToUse: string | undefined = address;
+        // Try to get FID from Farcaster SDK context first (most reliable)
+        let fetchedUserData: any = null;
         
         try {
-          const ethereumProvider = await sdk.wallet.getEthereumProvider();
-          if (ethereumProvider) {
-            const accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
-            if (accounts && accounts.length > 0) {
-              walletToUse = accounts[0] as `0x${string}`;
-              console.log('Using wallet from Farcaster SDK:', walletToUse);
+          const context = await sdk.context;
+          if (context?.user?.fid) {
+            const fid = context.user.fid;
+            console.log('Got FID from Farcaster context for mint:', fid);
+            const userRes = await fetch(`/api/fetch-farcaster-user?fid=${fid}`);
+            if (userRes.ok) {
+              fetchedUserData = await userRes.json();
             }
           }
-        } catch (sdkErr) {
-          console.log('Could not get wallet from Farcaster SDK, using wagmi address');
+        } catch (contextErr) {
+          console.log('Could not get FID from context, trying wallet:', contextErr);
         }
         
-        if (!walletToUse) {
-          throw new Error('No wallet address found. Please connect your wallet.');
+        // Fallback: Try wallet address
+        if (!fetchedUserData) {
+          let walletToUse: string | undefined = address;
+          
+          try {
+            const ethereumProvider = await sdk.wallet.getEthereumProvider();
+            if (ethereumProvider) {
+              const accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
+              if (accounts && accounts.length > 0) {
+                walletToUse = accounts[0] as `0x${string}`;
+                console.log('Using wallet from Farcaster SDK:', walletToUse);
+              }
+            }
+          } catch (sdkErr) {
+            console.log('Could not get wallet from Farcaster SDK, using wagmi address');
+          }
+          
+          if (!walletToUse) {
+            throw new Error('No wallet address found. Please connect your wallet.');
+          }
+          
+          const userRes = await fetch(`/api/fetch-farcaster-user?wallet=${walletToUse}`);
+          if (!userRes.ok) {
+            const errorData = await userRes.json().catch(() => ({ error: 'Request failed' }));
+            throw new Error(errorData.error || 'Could not fetch your Farcaster profile');
+          }
+          fetchedUserData = await userRes.json();
         }
         
-        // Fetch user data from wallet - try wallet first, then if that fails, try to get FID from Farcaster
-        let userRes = await fetch(`/api/fetch-farcaster-user?wallet=${walletToUse}`);
-        
-        // If wallet lookup fails, the error will be shown to user
-        // The API will return a helpful error message
-        
-        if (!userRes.ok) {
-          const errorData = await userRes.json().catch(() => ({ error: 'Request failed' }));
-          throw new Error(errorData.error || 'Could not fetch your Farcaster profile');
+        if (!fetchedUserData) {
+          throw new Error('Could not fetch your Farcaster profile');
         }
-        
-        const fetchedUserData = await userRes.json();
         setUserData(fetchedUserData);
         
         // Generate NFT from PFP if we don't have one yet
@@ -353,7 +392,7 @@ export default function TANFTMinterPro() {
           if (publicClient) {
             await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
           }
-        } else {
+      } else {
           throw new Error("Transaction failed: No wallet provider available");
         }
       }
@@ -409,49 +448,49 @@ export default function TANFTMinterPro() {
           {/* Step: Connect Wallet */}
           {step === "connect" && (
             <>
-              {!isConnected ? (
-                <button
-                  onClick={() => connect({ connector: injected() })}
+            {!isConnected ? (
+              <button
+                onClick={() => connect({ connector: injected() })}
                   className="w-full bg-black text-white border-2 border-black p-3 sm:p-4 text-base sm:text-lg font-black
-                           hover:bg-white hover:text-black transition-all duration-200
-                           active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
-                           mb-4"
-                >
-                  CONNECT WALLET
-                </button>
-              ) : (
+                         hover:bg-white hover:text-black transition-all duration-200
+                         active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                         mb-4"
+              >
+                CONNECT WALLET
+              </button>
+            ) : (
                 <div className="border-2 border-black p-3 sm:p-4 bg-green-100 mb-4">
                   <div className="flex justify-between items-center gap-2">
                     <div className="font-bold text-sm sm:text-base">WALLET CONNECTED</div>
                     <div className="font-mono text-xs sm:text-sm truncate">
                       {address?.substring(0, 6)}...{address?.substring(address.length - 4)}
                     </div>
-                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Info Grid */}
+          {/* Info Grid */}
               <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
                 <div className="border-2 border-black p-2 sm:p-4">
                   <div className="text-xs sm:text-sm font-bold mb-1">PRICE</div>
                   <div className="text-lg sm:text-xl md:text-2xl font-black">0.003 ETH</div>
-                </div>
+            </div>
                 <div className="border-2 border-black p-2 sm:p-4">
                   <div className="text-xs sm:text-sm font-bold mb-1">SUPPLY</div>
                   <div className="text-lg sm:text-xl md:text-2xl font-black">1,000</div>
-                </div>
+            </div>
                 <div className="border-2 border-black p-2 sm:p-4">
                   <div className="text-xs sm:text-sm font-bold mb-1">CHAIN</div>
                   <div className="text-lg sm:text-xl md:text-2xl font-black">BASE</div>
-                </div>
-              </div>
+            </div>
+          </div>
 
-              {/* Description */}
+          {/* Description */}
               <div className="border-2 border-black p-3 sm:p-4 mb-6 sm:mb-8 bg-gray-50">
                 <p className="text-xs sm:text-sm">
                   Mint a $tabledadrian NFT generated from your Farcaster profile picture. All fees (0.003 ETH) go to the LP of the token.
-                </p>
-              </div>
+            </p>
+          </div>
 
               {/* Main Mint Button - Auto-fetches user data */}
               {isConnected && (
@@ -475,17 +514,17 @@ export default function TANFTMinterPro() {
               <div className="text-xl sm:text-2xl font-black mb-4">
                 {step === "fetch" ? "FETCHING YOUR PROFILE..." : "GENERATING YOUR NFT..."}
               </div>
-              {userData && (
+          {userData && (
                 <div className="border-2 border-black p-3 sm:p-4 mb-4 bg-yellow-100">
                   <div className="flex items-center gap-3 sm:gap-4 justify-center flex-wrap">
-                    {userData.pfp_url && (
-                      <img 
-                        src={userData.pfp_url} 
-                        alt="Profile" 
+                {userData.pfp_url && (
+                  <img 
+                    src={userData.pfp_url} 
+                    alt="Profile" 
                         className="w-12 h-12 sm:w-16 sm:h-16 border-2 border-black rounded-full"
-                      />
-                    )}
-                    <div>
+                  />
+                )}
+                <div>
                       <div className="font-bold text-base sm:text-lg">@{userData.username}</div>
                       <div className="text-xs sm:text-sm">FID: {userData.fid}</div>
                     </div>
