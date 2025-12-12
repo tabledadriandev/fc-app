@@ -208,31 +208,30 @@ export function TANFTMinterPro() {
                 Connect Wallet
               </button>
             ) : (
-              <div className="text-right">
-                {userProfile ? (
-                  <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2">
-                    {/* Profile Picture */}
+              <div className="flex items-center gap-3 bg-slate-50 rounded-lg px-4 py-2.5 border border-slate-200">
+                {userProfile?.pfpUrl ? (
+                  // User checked DNA - show profile pic + username + short address
+                  <>
                     <img
                       src={userProfile.pfpUrl}
                       alt={userProfile.username}
-                      className="w-8 h-8 rounded-full border border-slate-300"
+                      className="w-10 h-10 rounded-full border-2 border-slate-300 object-cover"
                     />
-                    
-                    {/* User Info */}
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                    <div className="text-right">
+                      <p className="text-xs font-semibold text-slate-900">
                         @{userProfile.username}
                       </p>
-                      <p className="text-xs font-mono text-slate-600">
-                        {address?.substring(0, 6)}...
+                      <p className="text-xs text-slate-600 font-mono">
+                        {address?.substring(0, 5)}...
                       </p>
                     </div>
-                  </div>
+                  </>
                 ) : (
+                  // User just connected - show short address
                   <div className="text-right">
-                    <p className="text-xs text-slate-600 mb-1">Connected</p>
-                    <p className="text-sm font-mono text-slate-900">
-                      {address?.substring(0, 6)}...{address?.substring(-4)}
+                    <p className="text-xs text-slate-600">Connected</p>
+                    <p className="text-sm font-mono font-semibold text-slate-900">
+                      {address?.substring(0, 5)}...
                     </p>
                   </div>
                 )}
