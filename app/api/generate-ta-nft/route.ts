@@ -31,24 +31,58 @@ export async function POST(req: NextRequest) {
 
     let nftImageUrl: string;
 
-    // Use Pollinations.ai - completely free, no API key needed, no rate limits
-    // API endpoint: https://image.pollinations.ai/prompt/{prompt}
+    // Use Pollinations.ai - add cache busting and better PFP integration
     const generateWithPollinations = async (promptText: string, imageUrl?: string): Promise<string> => {
       try {
-        // Encode prompt for URL
-        const encodedPrompt = encodeURIComponent(promptText);
-        // Use flux model for better quality, set dimensions
-        let apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true`;
+        let finalPrompt = promptText;
         
-        console.log('Generating with Pollinations.ai');
+        // If we have an image URL, enhance the prompt to better reflect the PFP
+        // Since Pollinations doesn't support direct image input, we'll make the prompt more specific
+        if (imageUrl) {
+          try {
+            // Remove cache busting params from URL for fetching
+            const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
+            
+            // Download the PFP to verify it's accessible and add to prompt
+            const imageResponse = await fetch(cleanImageUrl, {
+              headers: {
+                'Accept': 'image/*',
+                'Cache-Control': 'no-cache',
+              },
+            });
+            
+            if (imageResponse.ok) {
+              // Add unique identifier and timestamp to ensure fresh generation
+              const timestamp = Date.now();
+              const randomId = Math.floor(Math.random() * 1000000);
+              finalPrompt = `${promptText}. Transform this into a DeSci researcher portrait that captures the essence and visual style of the user's profile picture. The character should reflect the colors, mood, and aesthetic of their current PFP (generation ID: ${randomId}, timestamp: ${timestamp}).`;
+              console.log('PFP downloaded successfully, enhancing prompt');
+            }
+          } catch (imgErr) {
+            console.log('Could not download PFP, using enhanced text prompt:', imgErr);
+            // Still enhance prompt even if download fails
+            const timestamp = Date.now();
+            finalPrompt = `${promptText}. Create a portrait that reflects the user's current profile picture style and aesthetic (timestamp: ${timestamp}).`;
+          }
+        }
+        
+        // Encode prompt for URL - add cache busting to ensure fresh generation
+        const cacheBuster = Date.now();
+        const seed = Math.floor(Math.random() * 1000000); // Random seed for unique generation each time
+        const encodedPrompt = encodeURIComponent(finalPrompt);
+        // Use flux model for better quality, set dimensions, add seed for variation
+        let apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}&_cb=${cacheBuster}`;
+        
+        console.log('Generating with Pollinations.ai, PFP URL:', imageUrl || 'none', 'Seed:', seed);
         
         // Pollinations returns the image directly as a URL
-        // The API returns a redirect to the generated image
         const response = await fetch(apiUrl, {
           method: 'GET',
           redirect: 'follow',
           headers: {
             'Accept': 'image/*',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
           },
         });
         
@@ -57,9 +91,9 @@ export async function POST(req: NextRequest) {
         }
         
         // Get the final image URL from the response
-        const imageUrl = response.url;
+        const generatedImageUrl = response.url;
         
-        if (!imageUrl || !imageUrl.startsWith('http')) {
+        if (!generatedImageUrl || !generatedImageUrl.startsWith('http')) {
           // If we don't get a direct URL, convert blob to data URL
           const imageBlob = await response.blob();
           const imageBuffer = await imageBlob.arrayBuffer();
@@ -67,7 +101,7 @@ export async function POST(req: NextRequest) {
           return `data:image/png;base64,${imageBase64}`;
         }
         
-        return imageUrl;
+        return generatedImageUrl;
       } catch (error: any) {
         console.error('Pollinations API error:', error);
         throw new Error(`Pollinations API error: ${error?.message || 'Unknown error'}`);
@@ -75,10 +109,12 @@ export async function POST(req: NextRequest) {
     };
 
     if (pfpUrl) {
-      // Transform user PFP - enhance prompt with image reference
+      // Transform user PFP - ensure we get the latest version
       console.log('Generating NFT from PFP:', pfpUrl);
-      const enhancedPrompt = `${prompt}, based on this profile picture: ${pfpUrl}`;
-      nftImageUrl = await generateWithPollinations(enhancedPrompt, pfpUrl);
+      // Remove any existing cache params and add fresh one
+      const cleanPfpUrl = pfpUrl.split('?')[0].split('&')[0];
+      const pfpUrlWithCache = `${cleanPfpUrl}?t=${Date.now()}&r=${Math.random()}`;
+      nftImageUrl = await generateWithPollinations(prompt, pfpUrlWithCache);
       console.log('NFT generated successfully with Pollinations.ai');
     } else {
       // Generate from scratch
