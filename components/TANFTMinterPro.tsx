@@ -18,13 +18,41 @@ export default function TANFTMinterPro() {
     try {
       let apiUrl = '/api/fetch-farcaster-user?';
       
-      // Use wallet address if connected, otherwise use default username
+      // Use wallet address if connected, otherwise require username input
       if (isConnected && address) {
         apiUrl += `wallet=${address}`;
       } else {
-        apiUrl += 'username=adriantable';
+        setError('Please connect wallet or enter a username');
+        setLoading(false);
+        return;
       }
       
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+      
+      if (res.ok) {
+        setUserData(data);
+      } else {
+        setError(data.error || 'User not found - try entering a username below');
+      }
+    } catch (err) {
+      setError('Connection failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkDNAWithUsername = async (username: string) => {
+    if (!username.trim()) {
+      setError('Please enter a username');
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    
+    try {
+      const apiUrl = `/api/fetch-farcaster-user?username=${encodeURIComponent(username.trim())}`;
       const res = await fetch(apiUrl);
       const data = await res.json();
       
@@ -70,11 +98,39 @@ export default function TANFTMinterPro() {
                 <div className="flex justify-between items-center">
                   <div className="font-bold">WALLET CONNECTED</div>
                   <div className="font-mono text-sm">
-                    {address?.substring(0, 6)}...{address?.substring(-4)}
+                    {address?.substring(0, 6)}...
                   </div>
                 </div>
               </div>
             )}
+            
+            {/* Username Input (Primary Method) */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold mb-2">Enter Your Farcaster Username:</label>
+              <input
+                type="text"
+                placeholder="Enter your Farcaster username (without @)"
+                className="w-full border-2 border-black p-3 text-sm"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    checkDNAWithUsername((e.target as HTMLInputElement).value);
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  const input = document.querySelector('input[placeholder*="Enter your Farcaster username"]') as HTMLInputElement;
+                  if (input?.value) {
+                    checkDNAWithUsername(input.value);
+                  } else {
+                    setError('Please enter a username');
+                  }
+                }}
+                className="w-full mt-2 bg-black text-white border-2 border-black p-3 text-sm font-bold hover:bg-white hover:text-black transition-all"
+              >
+                Check DNA with Username
+              </button>
+            </div>
           </div>
 
           {/* Info Grid */}
@@ -148,10 +204,9 @@ export default function TANFTMinterPro() {
 
         {/* Footer Stats */}
         <div className="mt-8 border-4 border-black p-4 bg-black text-white">
-          <div className="flex justify-between items-center">
-            <div className="font-bold">421 MINTED</div>
-            <div className="font-bold">579 REMAINING</div>
-            <div className="font-bold">1.263 ETH RAISED</div>
+          <div className="text-center">
+            <div className="font-bold">TABLE D'ADRIAN NFT</div>
+            <div className="text-sm mt-1">Powered by Base Network</div>
           </div>
         </div>
 
