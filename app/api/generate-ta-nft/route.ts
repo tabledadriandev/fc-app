@@ -28,22 +28,26 @@ export async function POST(req: NextRequest) {
     if (pfpUrl) {
       // Transform user PFP into TA chef NFT portrait
       const output = await replicate.run("aaronaftab/mirage-ghibli", {
-        image: pfpUrl,
-        prompt,
-        strength: 0.75,
-        guidance_scale: 8,
-        num_inference_steps: 35,
+        input: {
+          image: pfpUrl,
+          prompt,
+          strength: 0.75,
+          guidance_scale: 8,
+          num_inference_steps: 35,
+        },
       });
-      nftImageUrl = (output as string[])[0] || (output as string);
+      nftImageUrl = Array.isArray(output) ? output[0] : output as unknown as string;
     } else {
       // Generate from scratch
       const output = await replicate.run("cjwbw/animagine-xl-3.1", {
-        prompt,
-        negative_prompt: "blurry, low quality, amateur",
-        guidance_scale: 8,
-        num_inference_steps: 35,
+        input: {
+          prompt,
+          negative_prompt: "blurry, low quality, amateur",
+          guidance_scale: 8,
+          num_inference_steps: 35,
+        },
       });
-      nftImageUrl = (output as string[])[0] || (output as string);
+      nftImageUrl = Array.isArray(output) ? output[0] : output as unknown as string;
     }
 
     return NextResponse.json({
