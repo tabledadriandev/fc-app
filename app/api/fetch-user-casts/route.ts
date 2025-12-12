@@ -36,13 +36,17 @@ export async function GET(request: Request) {
     const castsData = await castsRes.json();
     const casts = castsData.result?.casts || [];
 
-    // Extract relevant cast data
+    // Extract relevant cast data with more details for better AI generation
     const formattedCasts = casts.map((cast: any) => ({
       hash: cast.hash,
-      text: cast.text,
+      text: cast.text || cast.content || "",
       timestamp: cast.timestamp,
       embeds: cast.embeds || [],
       mentions: cast.mentions || [],
+      reactions: cast.reactions || { count: 0 },
+      recasts: cast.recasts || { count: 0 },
+      // Include parent cast if it's a reply for context
+      parentText: cast.parent?.text || null,
     }));
 
     return NextResponse.json({

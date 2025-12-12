@@ -19,18 +19,95 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Extract themes from casts if available
+    // Advanced cast analysis for personalized character design
     let castContext = "";
+    let userVoice = "";
+    let userInterests: string[] = [];
+    let userPersonality = "";
+    
     if (casts && Array.isArray(casts) && casts.length > 0) {
-      const castTexts = casts.slice(0, 3).map((cast: any) => cast.text || cast.content || "").filter(Boolean);
-      if (castTexts.length > 0) {
-        castContext = `Based on their recent activity: ${castTexts.join(". ")}. `;
+      // Analyze all casts (up to 10) for deeper insights
+      const allCastTexts = casts.slice(0, 10).map((cast: any) => cast.text || cast.content || "").filter(Boolean);
+      const recentCastTexts = casts.slice(0, 5).map((cast: any) => cast.text || cast.content || "").filter(Boolean);
+      
+      if (allCastTexts.length > 0) {
+        // Extract key themes and topics
+        const fullText = allCastTexts.join(" ").toLowerCase();
+        
+        // Detect interests based on keywords
+        const interestKeywords: { [key: string]: string[] } = {
+          crypto: ['crypto', 'bitcoin', 'ethereum', 'defi', 'nft', 'blockchain', 'web3', 'token', 'dao'],
+          science: ['science', 'research', 'study', 'experiment', 'data', 'analysis', 'hypothesis', 'theory', 'discovery'],
+          tech: ['ai', 'machine learning', 'code', 'software', 'developer', 'programming', 'tech', 'algorithm'],
+          art: ['art', 'design', 'creative', 'aesthetic', 'visual', 'illustration', 'artist'],
+          philosophy: ['philosophy', 'think', 'thought', 'idea', 'concept', 'meaning', 'existential'],
+          health: ['health', 'medicine', 'medical', 'wellness', 'bio', 'biology', 'life'],
+          space: ['space', 'cosmos', 'universe', 'astronomy', 'planet', 'star', 'galaxy'],
+          gaming: ['game', 'gaming', 'play', 'player', 'quest', 'level', 'character'],
+        };
+        
+        for (const [interest, keywords] of Object.entries(interestKeywords)) {
+          if (keywords.some(keyword => fullText.includes(keyword))) {
+            userInterests.push(interest);
+          }
+        }
+        
+        // Analyze writing style/voice
+        const avgLength = allCastTexts.reduce((sum, text) => sum + text.length, 0) / allCastTexts.length;
+        const hasQuestions = allCastTexts.some(text => text.includes('?'));
+        const hasEmojis = allCastTexts.some(text => /[\u{1F300}-\u{1F9FF}]/u.test(text));
+        const isTechnical = fullText.includes('code') || fullText.includes('tech') || fullText.includes('algorithm');
+        const isPhilosophical = fullText.includes('think') || fullText.includes('idea') || fullText.includes('meaning');
+        const isCreative = fullText.includes('art') || fullText.includes('design') || fullText.includes('creative');
+        
+        // Build personality profile
+        if (isTechnical && isPhilosophical) {
+          userPersonality = "a deep-thinking technologist and philosopher";
+        } else if (isTechnical) {
+          userPersonality = "a technical innovator and builder";
+        } else if (isPhilosophical) {
+          userPersonality = "a thoughtful philosopher and intellectual";
+        } else if (isCreative) {
+          userPersonality = "a creative visionary and artist";
+        } else {
+          userPersonality = "a unique individual with distinct perspectives";
+        }
+        
+        // Build voice description
+        if (avgLength > 200) {
+          userVoice += "detailed and expressive";
+        } else if (avgLength < 50) {
+          userVoice += "concise and impactful";
+        } else {
+          userVoice += "balanced and thoughtful";
+        }
+        
+        if (hasQuestions) {
+          userVoice += ", curious and inquisitive";
+        }
+        
+        // Build context from recent casts
+        const contextTexts = recentCastTexts.slice(0, 3).join(". ");
+        castContext = `This person is ${userPersonality} with a ${userVoice} voice. `;
+        
+        if (userInterests.length > 0) {
+          castContext += `Their interests include: ${userInterests.slice(0, 3).join(", ")}. `;
+        }
+        
+        if (contextTexts) {
+          castContext += `Recent thoughts and content: "${contextTexts.substring(0, 300)}". `;
+        }
       }
     }
 
-    // Build prompt for Studio Ghibli + DeSci style transformation
-    // Emphasize preserving the exact face, head, and facial features
-    const stylePrompt = `Transform this portrait into a Table d'Adrian member in a DeSci universe. Style: professional anime art, Studio Ghibli inspired, scientific aesthetic. ${castContext}IMPORTANT: Keep the EXACT same face, head shape, facial features, expression, and head position from the original image. Only change: add premium lab attire (white coat, scientific equipment), sophisticated DeSci researcher clothing, and a futuristic DeSci research station background with scientific laboratory elements. The face, head, eyes, nose, mouth, and overall facial structure must remain IDENTICAL to the original. High resolution, NFT ready, professional portrait`;
+    // Build sophisticated, personalized prompt for masterminded character design
+    const stylePrompt = `Transform this portrait into an AWESOME, MASTERMINDED Table d'Adrian member in a DeSci universe. ${castContext}Character Design: Create a powerful, intelligent, and visually striking character that reflects their unique identity, interests, and personality. Style: premium professional anime art, Studio Ghibli meets cyberpunk aesthetic, sophisticated scientific researcher aesthetic. 
+
+CRITICAL FACE PRESERVATION: Keep the EXACT same face, head shape, facial features, expression, and head position from the original image. The face, head, eyes, nose, mouth, and overall facial structure must remain IDENTICAL to the original.
+
+Character Transformation: Add premium, futuristic lab attire (white coat with advanced scientific equipment, holographic displays, neural interfaces), sophisticated DeSci researcher clothing that reflects their personality and interests, and a stunning futuristic DeSci research station background with cutting-edge scientific laboratory elements, holographic data visualizations, and advanced technology. The character should look like a brilliant mastermind researcher - confident, intelligent, and powerful.
+
+Visual Style: High resolution, NFT ready, professional portrait, cinematic lighting, detailed textures, vibrant colors, epic composition. The character should embody the essence of a DeSci pioneer and innovator.`;
 
     let nftImageUrl: string;
 
@@ -267,40 +344,51 @@ export async function POST(req: NextRequest) {
       }
     };
 
+    // Log cast analysis for debugging
+    console.log('Cast analysis:', {
+      castContext,
+      userVoice,
+      userInterests,
+      userPersonality,
+      castsCount: casts?.length || 0,
+    });
+
     if (pfpUrl) {
       // Transform user PFP using best free AI model (Hugging Face Flux)
-      console.log('Generating NFT from PFP with best free AI model (Hugging Face Flux):', pfpUrl);
+      console.log('Generating personalized NFT from PFP with advanced AI:', pfpUrl);
       const cleanPfpUrl = pfpUrl.split('?')[0].split('&')[0];
       const pfpUrlWithCache = `${cleanPfpUrl}?t=${Date.now()}&r=${Math.random()}`;
       
       try {
         // Use Flux model first (FREE, BEST QUALITY for NFTs)
+        // The enhanced prompt now includes personalized character design based on user's casts and voice
         nftImageUrl = await generateWithFlux(pfpUrlWithCache, stylePrompt);
-        console.log('NFT generated successfully with Flux model (best free AI for NFTs)');
+        console.log('NFT generated successfully with Flux model - personalized masterminded character created');
       } catch (fluxError) {
         console.log('Flux model failed, trying Replicate as fallback:', fluxError);
         try {
           // Fallback to Replicate if available (for better face preservation)
           if (process.env.REPLICATE_API_TOKEN) {
             nftImageUrl = await generateWithReplicate(pfpUrlWithCache, stylePrompt);
-            console.log('NFT generated successfully with Replicate (fallback)');
+            console.log('NFT generated successfully with Replicate - personalized character with face preservation');
           } else {
             throw new Error('Replicate API token not configured');
           }
         } catch (replicateError) {
           console.log('Replicate also failed, falling back to Pollinations:', replicateError);
           // Last fallback to Pollinations with Flux
-          nftImageUrl = await generateWithPollinations(`${stylePrompt}. Transform this profile picture into the described style while maintaining exact facial features and likeness.`);
+          nftImageUrl = await generateWithPollinations(`${stylePrompt}. Transform this profile picture into the described personalized masterminded character style while maintaining exact facial features and likeness.`);
           console.log('NFT generated successfully with Pollinations.ai Flux (last fallback)');
         }
       }
     } else {
       // Generate from scratch using best free model
-      console.log('Generating NFT from scratch with Hugging Face Flux');
+      console.log('Generating personalized NFT from scratch with Hugging Face Flux');
       try {
         // For text-to-image, use Pollinations with Flux model (free)
+        // Even without PFP, we can create a personalized character based on casts
         nftImageUrl = await generateWithPollinations(stylePrompt);
-        console.log('NFT generated successfully with Pollinations.ai Flux');
+        console.log('NFT generated successfully with Pollinations.ai Flux - personalized character created');
       } catch (pollError) {
         console.log('Pollinations failed:', pollError);
         throw pollError;
