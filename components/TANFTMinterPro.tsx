@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useAccount, usePublicClient, useWalletClient, useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { parseEther, formatEther } from "viem";
@@ -191,10 +192,31 @@ export function TANFTMinterPro() {
     }
   };
 
+  const shouldReduceMotion = useReducedMotion();
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 relative overflow-hidden">
+      {/* Floating gradient background effects */}
+      <motion.div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.3),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(255,107,237,0.2),transparent_50%)]"
+        animate={shouldReduceMotion ? {} : {
+          scale: [1, 1.1, 1],
+          opacity: [0.3, 0.5, 0.3],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-50">
+      <motion.header
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="border-b border-white/20 bg-black/40 backdrop-blur-2xl sticky top-0 z-50"
+      >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-900">Table d'Adrian</h1>
@@ -241,15 +263,25 @@ export function TANFTMinterPro() {
             )}
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* SHOWCASE GALLERY - NEW */}
       {recentMints.length > 0 && (
-        <div className="bg-slate-50 border-b border-slate-200 px-6 py-12">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="bg-black/20 backdrop-blur-xl border-b border-white/10 px-6 py-12"
+        >
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-xl font-bold text-slate-900 mb-8">
+            <motion.h2
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-xl font-bold text-white mb-8"
+            >
               Recent Mints
-            </h2>
+            </motion.h2>
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {recentMints.map((mint) => (
@@ -291,18 +323,23 @@ export function TANFTMinterPro() {
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Left: Mint Form & Preview */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-slate-200 rounded-lg p-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-black/40 backdrop-blur-2xl border border-white/20 rounded-2xl p-8 shadow-[0_8px_32px_0_rgba(255,255,255,0.1)]"
+            >
               {step === "connect" && (
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 mb-6">
+                  <h2 className="text-xl font-bold text-white mb-6">
                     Mint Your TA NFT
                   </h2>
                   {!isConnected ? (
@@ -359,7 +396,9 @@ export function TANFTMinterPro() {
                           </div>
 
                           {/* Check DNA Button */}
-                          <button
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={async () => {
                               setLoading(true);
                               setError("");
@@ -400,10 +439,14 @@ export function TANFTMinterPro() {
                               }
                             }}
                             disabled={loading || (inputMethod === "username" && !inputUsername.trim())}
-                            className="w-full px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                            className="w-full rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-size-200 bg-pos-0 hover:bg-pos-100 p-[2px] transition-all duration-500 group/button"
                           >
-                            {loading ? "Checking DNA..." : "Check DNA"}
-                          </button>
+                            <div className="rounded-xl bg-slate-900 px-6 py-4 transition-colors group-hover/button:bg-transparent">
+                              <span className="font-bold text-white text-lg tracking-wide">
+                                {loading ? "Checking DNA..." : "Check DNA ✨"}
+                              </span>
+                            </div>
+                          </motion.button>
                         </div>
                       ) : (
                         // After checking DNA: Show user profile + casts
@@ -611,36 +654,51 @@ export function TANFTMinterPro() {
                   {error}
                 </div>
               )}
-            </div>
+            </motion.div>
           </div>
 
           {/* Right: Dashboard */}
           <div className="lg:col-span-2">
             {/* Stats */}
             <div className="grid grid-cols-2 gap-6 mb-12">
-              <div className="border border-slate-200 rounded-lg p-6">
-                <p className="text-sm text-slate-600 mb-1">Total Mints</p>
-                <p className="text-3xl font-bold text-slate-900">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="border border-white/20 bg-black/40 backdrop-blur-2xl rounded-xl p-6"
+              >
+                <p className="text-sm text-gray-400 mb-1">Total Mints</p>
+                <p className="text-3xl font-bold text-white">
                   {stats.totalMints}
                 </p>
-              </div>
-              <div className="border border-slate-200 rounded-lg p-6">
-                <p className="text-sm text-slate-600 mb-1">Total Volume</p>
-                <p className="text-3xl font-bold text-slate-900">
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="border border-white/20 bg-black/40 backdrop-blur-2xl rounded-xl p-6"
+              >
+                <p className="text-sm text-gray-400 mb-1">Total Volume</p>
+                <p className="text-3xl font-bold text-white">
                   {stats.totalVolume.toFixed(3)} ETH
                 </p>
-              </div>
+              </motion.div>
             </div>
 
             {/* Tabs */}
-            <div className="border border-slate-200 rounded-lg">
-              <div className="flex border-b border-slate-200">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="border border-white/20 bg-black/40 backdrop-blur-2xl rounded-2xl overflow-hidden"
+            >
+              <div className="flex border-b border-white/20">
                 <button
                   onClick={() => setActiveTab("leaderboard")}
                   className={`flex-1 px-6 py-4 font-semibold text-sm transition-colors ${
                     activeTab === "leaderboard"
-                      ? "text-slate-900 border-b-2 border-slate-900"
-                      : "text-slate-600 hover:text-slate-900"
+                      ? "text-white border-b-2 border-purple-500"
+                      : "text-gray-400 hover:text-white"
                   }`}
                 >
                   Leaderboard
@@ -649,8 +707,8 @@ export function TANFTMinterPro() {
                   onClick={() => setActiveTab("transactions")}
                   className={`flex-1 px-6 py-4 font-semibold text-sm transition-colors ${
                     activeTab === "transactions"
-                      ? "text-slate-900 border-b-2 border-slate-900"
-                      : "text-slate-600 hover:text-slate-900"
+                      ? "text-white border-b-2 border-purple-500"
+                      : "text-gray-400 hover:text-white"
                   }`}
                 >
                   Transactions
@@ -662,39 +720,42 @@ export function TANFTMinterPro() {
                 {activeTab === "leaderboard" && (
                   <div className="space-y-3">
                     {leaderboard.length === 0 ? (
-                      <p className="text-sm text-slate-600 text-center py-8">
+                      <p className="text-sm text-gray-400 text-center py-8">
                         No mints yet
                       </p>
                     ) : (
                       leaderboard.map((entry, idx) => (
-                        <div
+                        <motion.div
                           key={idx}
-                          className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 * idx }}
+                          className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
-                              <span className="text-xs font-bold text-slate-700">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                              <span className="text-xs font-bold text-white">
                                 {idx + 1}
                               </span>
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">
+                              <p className="text-sm font-semibold text-white">
                                 {entry.username}
                               </p>
-                              <p className="text-xs text-slate-600 font-mono">
+                              <p className="text-xs text-gray-400 font-mono">
                                 {entry.wallet.substring(0, 10)}...
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-bold text-slate-900">
+                            <p className="text-sm font-bold text-white">
                               {entry.count} NFTs
                             </p>
-                            <p className="text-xs text-slate-600">
+                            <p className="text-xs text-gray-400">
                               {entry.totalEth.toFixed(3)} ETH
                             </p>
                           </div>
-                        </div>
+                        </motion.div>
                       ))
                     )}
                   </div>
@@ -704,38 +765,40 @@ export function TANFTMinterPro() {
                 {activeTab === "transactions" && (
                   <div className="space-y-3">
                     {transactions.length === 0 ? (
-                      <p className="text-sm text-slate-600 text-center py-8">
+                      <p className="text-sm text-gray-400 text-center py-8">
                         No transactions yet
                       </p>
                     ) : (
                       transactions.map((tx) => (
-                        <div
+                        <motion.div
                           key={tx.id}
-                          className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
                         >
                           <div>
-                            <p className="text-sm font-semibold text-slate-900">
+                            <p className="text-sm font-semibold text-white">
                               {tx.username}
                             </p>
-                            <p className="text-xs text-slate-600 font-mono">
+                            <p className="text-xs text-gray-400 font-mono">
                               {tx.tx_hash.substring(0, 12)}...
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-bold text-slate-900">
+                            <p className="text-sm font-bold text-white">
                               0.003 ETH
                             </p>
-                            <p className="text-xs text-slate-600">
+                            <p className="text-xs text-gray-400">
                               {new Date(tx.minted_at).toLocaleDateString()}
                             </p>
                           </div>
-                        </div>
+                        </motion.div>
                       ))
                     )}
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
