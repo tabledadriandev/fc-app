@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       success: true,
       transaction: {
         to: LIQUIDITY_POOL as `0x${string}`,
-        value: parseEther("0.003"), // 0.003 ETH goes directly to liquidity pool
+        value: parseEther("0.001"), // 0.001 ETH goes directly to liquidity pool
         chainId: 8453,
         data: "0x", // No contract call needed
       },
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
         username,
         name: `TA NFT: ${username}`,
         collection: "Table d'Adrian DeSci Collection",
-        price: "0.003 ETH",
+        price: "0.001 ETH",
         destination: "Your Wallet (stored in database) + Liquidity Pool",
       },
     });

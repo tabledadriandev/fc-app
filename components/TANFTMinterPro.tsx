@@ -503,7 +503,7 @@ export default function TANFTMinterPro() {
           txErr?.code === -32000;
         
         if (isInsufficientBalance) {
-          throw new Error(`Insufficient balance. You need at least 0.003 ETH + gas fees (approximately 0.0001 ETH) in your wallet to mint. Your current balance is too low. Please fund your wallet and try again.`);
+          throw new Error(`Insufficient balance. You need at least 0.001 ETH + gas fees (approximately 0.0001 ETH) in your wallet to mint. Your current balance is too low. Please fund your wallet and try again.`);
         }
         
         // Check if user rejected the transaction
@@ -542,12 +542,12 @@ export default function TANFTMinterPro() {
               fallbackMsg.includes('not enough funds');
             
             if (isFallbackInsufficient) {
-              throw new Error(`Insufficient balance. You need at least 0.003 ETH + gas fees (approximately 0.0001 ETH) in your wallet to mint. Please fund your wallet and try again.`);
+              throw new Error(`Insufficient balance. You need at least 0.001 ETH + gas fees (approximately 0.0001 ETH) in your wallet to mint. Please fund your wallet and try again.`);
             }
             throw new Error(`Transaction failed: ${fallbackMsg}`);
           }
         } else {
-          throw new Error(`Transaction failed: ${errorMessage}. Please make sure your wallet is connected to Base network and has enough ETH (0.003 ETH + gas fees).`);
+          throw new Error(`Transaction failed: ${errorMessage}. Please make sure your wallet is connected to Base network and has enough ETH (0.001 ETH + gas fees).`);
         }
       }
 
@@ -638,7 +638,7 @@ export default function TANFTMinterPro() {
               <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
                 <div className="border-2 border-black p-2 sm:p-4">
                   <div className="text-xs sm:text-sm font-bold mb-1">PRICE</div>
-                  <div className="text-lg sm:text-xl md:text-2xl font-black">0.003 ETH</div>
+                  <div className="text-lg sm:text-xl md:text-2xl font-black">0.001 ETH</div>
             </div>
                 <div className="border-2 border-black p-2 sm:p-4">
                   <div className="text-xs sm:text-sm font-bold mb-1">SUPPLY</div>
@@ -653,7 +653,7 @@ export default function TANFTMinterPro() {
               {/* Description */}
               <div className="border-2 border-black p-3 sm:p-4 mb-6 sm:mb-8 bg-gray-50">
                 <p className="text-xs sm:text-sm">
-                  Mint a $tabledadrian NFT generated from your Farcaster profile picture. All fees (0.003 ETH) go to the LP of the token.
+                  Mint a $tabledadrian NFT generated from your Farcaster profile picture. All fees (0.001 ETH) go to the LP of the token.
                 </p>
               </div>
 
@@ -668,7 +668,7 @@ export default function TANFTMinterPro() {
                            active:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
                            disabled:opacity-50 text-center"
                 >
-                  {loading ? 'LOADING...' : 'MINT NFT (0.003 ETH)'}
+                  {loading ? 'LOADING...' : 'MINT NFT (0.001 ETH)'}
                 </button>
               )}
             </>
@@ -722,7 +722,7 @@ export default function TANFTMinterPro() {
               <div className="border-2 border-black p-3 sm:p-4 mb-4 sm:mb-6 bg-yellow-100">
                 <div className="font-bold text-base sm:text-lg mb-2">TA NFT: @{userData.username}</div>
                 <div className="text-xs sm:text-sm mb-1">Collection: Table d'Adrian DeSci Collection</div>
-                <div className="text-xs sm:text-sm font-bold">Price: 0.003 ETH → Liquidity Pool</div>
+                <div className="text-xs sm:text-sm font-bold">Price: 0.001 ETH → Liquidity Pool</div>
               </div>
 
               {/* Mint Button */}
@@ -768,7 +768,7 @@ export default function TANFTMinterPro() {
               <div className="border-2 border-black p-3 sm:p-4 mb-4 sm:mb-6 bg-green-100">
                 <div className="font-bold text-base sm:text-lg mb-2">Successfully Minted!</div>
                 <div className="text-xs sm:text-sm mb-2">@{userData?.username}</div>
-                <div className="text-xs mb-2">NFT minted and owned by you • 0.003 ETH sent to $TA Liquidity Pool</div>
+                <div className="text-xs mb-2">NFT minted and owned by you • 0.001 ETH sent to $TA Liquidity Pool</div>
                 {txHash && (
                   <div className="text-xs font-mono break-all text-gray-600">
                     TX: {txHash.substring(0, 20)}...{txHash.substring(txHash.length - 10)}

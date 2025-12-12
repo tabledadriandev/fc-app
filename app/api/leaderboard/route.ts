@@ -70,7 +70,7 @@ export async function GET() {
       }
       const entry = mintCounts.get(key)!;
       entry.mint_count += 1;
-      entry.total_eth += 0.003; // Each mint is 0.003 ETH
+      entry.total_eth += 0.001; // Each mint is 0.001 ETH
     });
 
     // Convert to array and sort by mint count
