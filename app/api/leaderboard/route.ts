@@ -6,10 +6,15 @@ function getSupabaseClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!url || !key) {
-    throw new Error('Supabase URL or key missing in environment');
+    return null; // Return null instead of throwing
   }
   
-  return createClient(url, key);
+  try {
+    return createClient(url, key);
+  } catch (error) {
+    console.warn('Failed to create Supabase client:', error);
+    return null;
+  }
 }
 
 export async function GET() {
@@ -18,6 +23,11 @@ export async function GET() {
     
     try {
       const supabase = getSupabaseClient();
+      
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+      
       const { data, error: mintsError } = await supabase
         .from("ta_nft_mints")
         .select("username, wallet_address, pfp_url")
