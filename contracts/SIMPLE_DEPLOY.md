@@ -41,9 +41,17 @@
    - Select "Base" (or add it if you don't have it)
 4. In Remix, find "Deploy" section
 5. You'll see two boxes to fill:
-   - **First box** (`initialOwner`): Paste YOUR wallet address (from MetaMask)
-   - **Second box** (`_liquidityPool`): Paste your liquidity pool address (from .env file: `NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS`)
+   - **First box** (`initialOwner`): 
+     - Open MetaMask
+     - Click your account name at the top
+     - Copy your address (looks like: `0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb`)
+     - Paste it here - MUST be 42 characters starting with 0x!
+   - **Second box** (`_liquidityPool`): 
+     - Paste your liquidity pool address from .env file (`NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS`)
+     - Also 42 characters starting with 0x
 6. Click orange "Deploy" button
+   
+   ⚠️ **IMPORTANT**: Use your WALLET ADDRESS (short, 42 chars), NOT your private key (long, 66+ chars)!
 7. MetaMask will pop up - click "Confirm" and pay gas fee
 
 ### Step 6: Get Your Contract Address
