@@ -17,10 +17,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Build prompt emphasizing Table d'Adrian branding + user DNA/PFP
-    const prompt = `Portrait of ${username}, luxury chef, Table d'Adrian NFT collection. 
-    Style: professional anime art, Studio Ghibli inspired, fine dining aesthetic. 
-    Features: Premium chef attire, sophisticated demeanor, culinary mastery evident. 
-    Background: luxury kitchen, high-end plating station. 
+    const prompt = `Portrait of ${username}, DeSci researcher, Table d'Adrian NFT collection. 
+    Style: professional anime art, Studio Ghibli inspired, scientific aesthetic. 
+    Features: Premium lab attire, sophisticated demeanor, scientific mastery evident. 
+    Background: luxury lab, high-end research station. 
     Quality: high resolution, NFT ready, professional portrait, unique character design`;
 
     let nftImageUrl: string;
@@ -55,10 +55,10 @@ export async function POST(req: NextRequest) {
       nftImage: nftImageUrl,
       nftMetadata: {
         name: `TA NFT: ${username}`,
-        description: "Table d'Adrian Luxury Chef NFT",
+        description: "Table d'Adrian DeSci NFT",
         image: nftImageUrl,
         artist: "Table d'Adrian",
-        collection: "TA Chef Collection",
+        collection: "TA DeSci Collection",
       },
     });
   } catch (error) {
@@ -68,4 +68,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}"// Build fixes applied" 
+}

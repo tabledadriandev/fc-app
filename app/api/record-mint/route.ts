@@ -14,7 +14,7 @@ function getSupabaseClient() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { walletAddress, username, nftImageUrl, txHash, taBalance } =
+    const { walletAddress, username, nftImageUrl, txHash, taBalance, castText, castHash, castTimestamp, pfpUrl } =
       await req.json();
 
     const supabase = getSupabaseClient()
@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
         nft_image_url: nftImageUrl,
         tx_hash: txHash,
         ta_balance_at_mint: taBalance,
+        cast_text: castText || null,
+        cast_hash: castHash || null,
+        cast_timestamp: castTimestamp || null,
+        pfp_url: pfpUrl || null,
         minted_at: new Date().toISOString(),
       },
     ]);
