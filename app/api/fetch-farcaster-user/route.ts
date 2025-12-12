@@ -31,34 +31,62 @@ export async function GET(request: Request) {
 
     // Method 1: Direct username lookup using Farcaster Hub
     if (!targetFid && username) {
-      const cleanUsername = username.replace('@', '');
+      const cleanUsername = username.replace('@', '').toLowerCase();
       console.log('Trying direct username lookup for:', cleanUsername);
 
       try {
         // Try the official Farcaster Hub API
-        const hubRes = await fetch(`https://api.farcaster.xyz/v2/user-by-username?username=${cleanUsername}`);
+        const hubRes = await fetch(`https://api.farcaster.xyz/v2/user-by-username?username=${cleanUsername}`, {
+          headers: { 'Accept': 'application/json' }
+        });
         if (hubRes.ok) {
           const hubData = await hubRes.json();
-          if (hubData.user) {
-            targetFid = hubData.user.fid;
+          if (hubData.result?.user) {
+            targetFid = hubData.result.user.fid;
             console.log('Found FID via Hub API:', targetFid);
+          } else if (hubData.user) {
+            targetFid = hubData.user.fid;
+            console.log('Found FID via Hub API (alt format):', targetFid);
           }
+        } else {
+          console.log('Hub API failed with status:', hubRes.status);
         }
       } catch (err) {
-        console.log('Hub API failed, trying alternatives');
+        console.log('Hub API error:', err);
+      }
+
+      // Fallback: Try Neynar API
+      if (!targetFid) {
+        try {
+          const neynarRes = await fetch(`https://api.neynar.com/v2/farcaster/user/by_username?username=${cleanUsername}`, {
+            headers: { 
+              'Accept': 'application/json',
+              'api_key': process.env.NEYNAR_API_KEY || ''
+            }
+          });
+          if (neynarRes.ok) {
+            const neynarData = await neynarRes.json();
+            targetFid = neynarData.result?.fid || null;
+            console.log('Found FID via Neynar:', targetFid);
+          }
+        } catch (err) {
+          console.log('Neynar lookup error:', err);
+        }
       }
 
       // Fallback: Try Fname registry
       if (!targetFid) {
         try {
-          const fnameRes = await fetch(`https://fnames.farcaster.xyz/transfers/current?name=${cleanUsername}`);
+          const fnameRes = await fetch(`https://fnames.farcaster.xyz/transfers/current?name=${cleanUsername}`, {
+            headers: { 'Accept': 'application/json' }
+          });
           if (fnameRes.ok) {
             const fnameData = await fnameRes.json();
             targetFid = fnameData.transfers?.[0]?.to || null;
             console.log('Found FID via Fname registry:', targetFid);
           }
         } catch (err) {
-          console.log('Fname registry failed');
+          console.log('Fname registry error:', err);
         }
       }
     }
@@ -66,30 +94,83 @@ export async function GET(request: Request) {
     // Method 2: Wallet lookup
     if (!targetFid && wallet) {
       console.log('Trying wallet lookup for:', wallet);
-
+      
+      // Normalize wallet address (lowercase, remove 0x prefix issues)
+      const normalizedWallet = wallet.toLowerCase().startsWith('0x') ? wallet.toLowerCase() : `0x${wallet.toLowerCase()}`;
+      
       try {
         // Try Pinata Hub (most reliable)
-        const pinataRes = await fetch(`https://hub.pinata.cloud/v1/verificationsByAddress?address=${wallet}`);
+        const pinataRes = await fetch(`https://hub.pinata.cloud/v1/verificationsByAddress?address=${normalizedWallet}`, {
+          headers: { 'Accept': 'application/json' }
+        });
         if (pinataRes.ok) {
           const pinataData = await pinataRes.json();
           targetFid = pinataData.messages?.[0]?.data?.fid || null;
           console.log('Found FID via Pinata:', targetFid);
+        } else {
+          console.log('Pinata lookup failed with status:', pinataRes.status);
         }
       } catch (err) {
-        console.log('Pinata lookup failed');
+        console.log('Pinata lookup error:', err);
       }
-
-      // Fallback: Try direct Hub API
+      
+      // Fallback: Try direct Hub API with correct format
       if (!targetFid) {
         try {
-          const hubWalletRes = await fetch(`https://api.farcaster.xyz/v2/verifications?address=${wallet}`);
+          // Try Farcaster Hub API v2 - correct endpoint
+          const hubWalletRes = await fetch(`https://api.farcaster.xyz/v2/verifications?address=${normalizedWallet}`, {
+            headers: { 
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+          
           if (hubWalletRes.ok) {
             const hubWalletData = await hubWalletRes.json();
-            targetFid = hubWalletData.result?.verifications?.[0]?.fid || null;
+            // Check different response formats
+            targetFid = hubWalletData.result?.verifications?.[0]?.fid || 
+                       hubWalletData.verifications?.[0]?.fid ||
+                       hubWalletData.result?.fid ||
+                       null;
             console.log('Found FID via Hub wallet API:', targetFid);
+          } else {
+            const errorText = await hubWalletRes.text().catch(() => '');
+            console.log('Hub wallet API failed with status:', hubWalletRes.status, errorText);
+            
+            // Try alternative: user-by-verification endpoint
+            const altRes = await fetch(`https://api.farcaster.xyz/v2/user-by-verification?address=${normalizedWallet}`, {
+              headers: { 
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+            if (altRes.ok) {
+              const altData = await altRes.json();
+              targetFid = altData.result?.user?.fid || altData.user?.fid || null;
+              console.log('Found FID via Hub alt API:', targetFid);
+            }
           }
         } catch (err) {
-          console.log('Hub wallet API failed');
+          console.log('Hub wallet API error:', err);
+        }
+      }
+      
+      // Additional fallback: Try Neynar API
+      if (!targetFid) {
+        try {
+          const neynarRes = await fetch(`https://api.neynar.com/v2/farcaster/user/by_verification?address=${normalizedWallet}`, {
+            headers: { 
+              'Accept': 'application/json',
+              'api_key': process.env.NEYNAR_API_KEY || ''
+            }
+          });
+          if (neynarRes.ok) {
+            const neynarData = await neynarRes.json();
+            targetFid = neynarData.result?.fid || null;
+            console.log('Found FID via Neynar:', targetFid);
+          }
+        } catch (err) {
+          console.log('Neynar lookup error:', err);
         }
       }
     }
@@ -120,13 +201,22 @@ export async function GET(request: Request) {
 
     try {
       // Try official Farcaster API first
-      const userRes = await fetch(`https://api.farcaster.xyz/v2/user?fid=${targetFid}`);
+      const userRes = await fetch(`https://api.farcaster.xyz/v2/user?fid=${targetFid}`, {
+        headers: { 'Accept': 'application/json' }
+      });
       if (userRes.ok) {
-        userData = await userRes.json();
+        const data = await userRes.json();
+        if (data.result?.user) {
+          userData = { user: data.result.user };
+        } else if (data.user) {
+          userData = { user: data.user };
+        }
         console.log('Got user data from official API');
+      } else {
+        console.log('Official API failed with status:', userRes.status);
       }
     } catch (err) {
-      console.log('Official API failed, trying Pinata');
+      console.log('Official API error:', err);
     }
 
     // Fallback to Pinata

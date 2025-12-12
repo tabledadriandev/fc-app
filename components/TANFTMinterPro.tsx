@@ -107,8 +107,28 @@ export default function TANFTMinterPro() {
         
         // Try to get FID from Farcaster SDK context first (most reliable)
         try {
-          const context = await sdk.context;
+          // Try different ways to access context
+          let context: any = null;
+          
+          // Method 1: Direct access
+          try {
+            context = await sdk.context;
+          } catch (e) {
+            // Method 2: Check if it's a property
+            context = (sdk as any).context;
+          }
+          
+          // Method 3: Check window.frame.sdk
+          if (!context && typeof window !== 'undefined' && (window as any).frame?.sdk) {
+            try {
+              context = await (window as any).frame.sdk.context;
+            } catch (e) {
+              context = (window as any).frame.sdk.context;
+            }
+          }
+          
           console.log('Farcaster context:', context);
+          
           if (context?.user?.fid) {
             const fid = context.user.fid;
             console.log('Got FID from Farcaster context:', fid);
@@ -234,7 +254,23 @@ export default function TANFTMinterPro() {
         let fetchedUserData: any = null;
         
         try {
-          const context = await sdk.context;
+          // Try different ways to access context
+          let context: any = null;
+          
+          try {
+            context = await sdk.context;
+          } catch (e) {
+            context = (sdk as any).context;
+          }
+          
+          if (!context && typeof window !== 'undefined' && (window as any).frame?.sdk) {
+            try {
+              context = await (window as any).frame.sdk.context;
+            } catch (e) {
+              context = (window as any).frame.sdk.context;
+            }
+          }
+          
           console.log('Farcaster context for mint:', context);
           if (context?.user?.fid) {
             const fid = context.user.fid;
@@ -503,31 +539,6 @@ export default function TANFTMinterPro() {
                 </p>
               </div>
 
-              {/* Manual Username Input (fallback if auto-detect fails) */}
-              {error && error.includes('User not found') && (
-                <div className="border-2 border-black p-3 sm:p-4 mb-4 bg-yellow-50">
-                  <p className="text-xs sm:text-sm mb-3 font-bold">Could not auto-detect your profile. Enter your Farcaster username:</p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={usernameInput}
-                      onChange={(e) => setUsernameInput(e.target.value)}
-                      placeholder="yourusername (without @)"
-                      className="flex-1 border-2 border-black p-2 text-sm"
-                      onKeyPress={(e) => e.key === 'Enter' && handleUsernameSubmit()}
-                    />
-                    <button
-                      onClick={handleUsernameSubmit}
-                      disabled={loading || !usernameInput.trim()}
-                      className="bg-black text-white border-2 border-black px-4 py-2 text-sm font-bold
-                               hover:bg-white hover:text-black transition-all
-                               disabled:opacity-50"
-                    >
-                      FETCH
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* Main Mint Button - Auto-fetches user data */}
               {isConnected && (
