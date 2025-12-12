@@ -41,14 +41,21 @@ export default function TANFTMinterPro() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "NFT generation failed");
+        const errorMsg = data.details || data.message || data.error || "NFT generation failed";
+        console.error('NFT generation API error:', { status: res.status, error: data });
+        throw new Error(errorMsg);
+      }
+
+      if (!data.nftImage) {
+        throw new Error("NFT generation returned no image");
       }
 
       setNftImageUrl(data.nftImage);
       setStep("preview");
     } catch (err) {
       console.error('Error generating NFT:', err);
-      setError(err instanceof Error ? err.message : 'NFT generation failed');
+      const errorMessage = err instanceof Error ? err.message : 'NFT generation failed';
+      setError(errorMessage);
       setStep("connect");
     } finally {
       setLoading(false);
@@ -378,7 +385,8 @@ export default function TANFTMinterPro() {
 
     // Now proceed with minting
     if (!nftImageUrl || !userData) {
-      setError("Failed to generate NFT. Please try again.");
+      const errorMsg = error || "Failed to generate NFT. Please try again.";
+      setError(errorMsg);
       setLoading(false);
       setStep("connect");
       return;

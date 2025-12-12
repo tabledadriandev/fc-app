@@ -9,10 +9,21 @@ export async function POST(req: NextRequest) {
   try {
     const { pfpUrl, username, taBalance, casts } = await req.json();
 
+    console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount: casts?.length || 0 });
+
     if (!username) {
       return NextResponse.json(
         { error: "Username required" },
         { status: 400 }
+      );
+    }
+
+    // Check if Replicate API token is configured
+    if (!process.env.REPLICATE_API_TOKEN) {
+      console.error("REPLICATE_API_TOKEN is not set");
+      return NextResponse.json(
+        { error: "Replicate API token is not configured" },
+        { status: 500 }
       );
     }
 
@@ -36,27 +47,45 @@ export async function POST(req: NextRequest) {
 
     if (pfpUrl) {
       // Transform user PFP into TA chef NFT portrait
-      const output = await replicate.run("aaronaftab/mirage-ghibli", {
-        input: {
-          image: pfpUrl,
-          prompt,
-          strength: 0.75,
-          guidance_scale: 8,
-          num_inference_steps: 35,
-        },
-      });
-      nftImageUrl = Array.isArray(output) ? output[0] : output as unknown as string;
+      console.log('Generating NFT from PFP:', pfpUrl);
+      try {
+        const output = await replicate.run("aaronaftab/mirage-ghibli", {
+          input: {
+            image: pfpUrl,
+            prompt,
+            strength: 0.75,
+            guidance_scale: 8,
+            num_inference_steps: 35,
+          },
+        });
+        nftImageUrl = Array.isArray(output) ? output[0] : output as unknown as string;
+        console.log('NFT generated successfully:', nftImageUrl);
+      } catch (replicateError) {
+        console.error('Replicate API error:', replicateError);
+        throw new Error(`Replicate API error: ${replicateError instanceof Error ? replicateError.message : String(replicateError)}`);
+      }
     } else {
       // Generate from scratch
-      const output = await replicate.run("cjwbw/animagine-xl-3.1", {
-        input: {
-          prompt,
-          negative_prompt: "blurry, low quality, amateur",
-          guidance_scale: 8,
-          num_inference_steps: 35,
-        },
-      });
-      nftImageUrl = Array.isArray(output) ? output[0] : output as unknown as string;
+      console.log('Generating NFT from scratch');
+      try {
+        const output = await replicate.run("cjwbw/animagine-xl-3.1", {
+          input: {
+            prompt,
+            negative_prompt: "blurry, low quality, amateur",
+            guidance_scale: 8,
+            num_inference_steps: 35,
+          },
+        });
+        nftImageUrl = Array.isArray(output) ? output[0] : output as unknown as string;
+        console.log('NFT generated successfully:', nftImageUrl);
+      } catch (replicateError) {
+        console.error('Replicate API error:', replicateError);
+        throw new Error(`Replicate API error: ${replicateError instanceof Error ? replicateError.message : String(replicateError)}`);
+      }
+    }
+
+    if (!nftImageUrl) {
+      throw new Error("NFT generation returned no image URL");
     }
 
     return NextResponse.json({
@@ -72,8 +101,19 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("NFT generation error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorDetails = error instanceof Error ? error.stack : String(error);
+    console.error("Error details:", errorDetails);
     return NextResponse.json(
-      { error: "Generation failed" },
+      { 
+        error: "Generation failed",
+        details: errorMessage,
+        message: errorMessage.includes("REPLICATE_API_TOKEN") 
+          ? "Replicate API token is missing or invalid" 
+          : errorMessage.includes("timeout") || errorMessage.includes("time")
+          ? "Generation timed out. Please try again."
+          : "Failed to generate NFT. Please check your Replicate API token and try again."
+      },
       { status: 500 }
     );
   }
