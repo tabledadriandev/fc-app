@@ -60,7 +60,7 @@ export function TANFTMinterPro() {
         if (data.success) {
           setLeaderboard(data.leaderboard);
           setTransactions(data.recentTransactions);
-          setRecentMints(data.recentMints);
+          setRecentMints(data.recentMints || []);
           setStats({
             totalMints: data.totalMints,
             totalVolume: data.totalVolume,
@@ -190,29 +190,30 @@ export function TANFTMinterPro() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py- items-center">
-         4 flex justify-between <div>
+      <header className="border-b border-slate-200 bg-white sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-900">Table d'Adrian</h1>
             <p className="text-sm text-slate-600">TA NFT Generator</p>
           </div>
 
-          {/* Wallet Connect Button */}
-          {!isConnected ? (
-            <button
-              onClick={() => connect({ connector: injected() })}
-              className="px-6 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              Connect Wallet
-            </button>
-          ) : (
-            <div className="text-right">
-              <p className="text-xs text-slate-600 mb-1">Connected</p>
-              <p className="text-sm font-mono text-slate-900">
-                {address?.substring(0, 6)}...{address?.substring(-4)}
-              </p>
-            </div>
-          )}
+          <div className="flex-shrink-0 ml-6">
+            {!isConnected ? (
+              <button
+                onClick={() => connect({ connector: injected() })}
+                className="px-6 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap"
+              >
+                Connect Wallet
+              </button>
+            ) : (
+              <div className="text-right">
+                <p className="text-xs text-slate-600 mb-1">Connected</p>
+                <p className="text-sm font-mono text-slate-900">
+                  {address?.substring(0, 6)}...{address?.substring(-4)}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
