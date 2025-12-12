@@ -1,5 +1,5 @@
-import { TANFTMinter } from "@/components/TANFTMinter";
+import { TANFTMinterPro } from "@/components/TANFTMinterPro";
 
 export default function Home() {
-  return <TANFTMinter />;
+  return <TANFTMinterPro />;
 }
