@@ -47,6 +47,8 @@ export function TANFTMinterPro() {
   const [recentMints, setRecentMints] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [userCasts, setUserCasts] = useState<any[]>([]);
+  const [inputMethod, setInputMethod] = useState<"wallet" | "username">("wallet");
+  const [inputUsername, setInputUsername] = useState("");
   const [stats, setStats] = useState({
     totalMints: 0,
     totalVolume: 0,
@@ -318,40 +320,91 @@ export function TANFTMinterPro() {
                   ) : (
                     <>
                       {!userProfile ? (
-                        // Before checking DNA: Show only Check DNA button
-                        <button
-                          onClick={async () => {
-                            setLoading(true);
-                            setError("");
+                        // Before checking DNA: Show input method selection and button
+                        <div>
+                          {/* Input Method Selection */}
+                          <div className="mb-4">
+                            <div className="flex gap-2 mb-3">
+                              <button
+                                onClick={() => setInputMethod("wallet")}
+                                className={`px-3 py-1 text-xs rounded ${
+                                  inputMethod === "wallet"
+                                    ? "bg-slate-900 text-white"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}
+                              >
+                                Use Wallet
+                              </button>
+                              <button
+                                onClick={() => setInputMethod("username")}
+                                className={`px-3 py-1 text-xs rounded ${
+                                  inputMethod === "username"
+                                    ? "bg-slate-900 text-white"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}
+                              >
+                                Enter Username
+                              </button>
+                            </div>
 
-                            try {
-                              const res = await fetch("/api/fetch-farcaster-user", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  walletAddress: address,
-                                }),
-                              });
+                            {inputMethod === "username" && (
+                              <input
+                                type="text"
+                                placeholder="Enter your Farcaster username (without @)"
+                                value={inputUsername}
+                                onChange={(e) => setInputUsername(e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                              />
+                            )}
+                          </div>
 
-                              const data = await res.json();
+                          {/* Check DNA Button */}
+                          <button
+                            onClick={async () => {
+                              setLoading(true);
+                              setError("");
 
-                              if (!res.ok) throw new Error(data.error);
+                              try {
+                                const requestBody: any = {};
+                                
+                                if (inputMethod === "wallet") {
+                                  if (!address) {
+                                    throw new Error("Please connect your wallet first");
+                                  }
+                                  requestBody.walletAddress = address;
+                                } else {
+                                  if (!inputUsername.trim()) {
+                                    throw new Error("Please enter your Farcaster username");
+                                  }
+                                  requestBody.farcasterUsername = inputUsername.trim();
+                                }
 
-                              setUserProfile(data.user);
-                              setUserCasts(data.casts);
-                              setUsername(data.user.username);
-                              setTaBalance(0); // Will be fetched in check-user
-                            } catch (err) {
-                              setError((err as Error).message);
-                            } finally {
-                              setLoading(false);
-                            }
-                          }}
-                          disabled={loading}
-                          className="w-full px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
-                        >
-                          {loading ? "Checking DNA..." : "Check DNA"}
-                        </button>
+                                const res = await fetch("/api/fetch-farcaster-user", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify(requestBody),
+                                });
+
+                                const data = await res.json();
+
+                                if (!res.ok) throw new Error(data.error);
+
+                                setUserProfile(data.user);
+                                setUserCasts(data.casts);
+                                setUsername(data.user.username);
+                                setTaBalance(0); // Will be fetched in check-user
+                              } catch (err) {
+                                setError((err as Error).message);
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                            disabled={loading || (inputMethod === "username" && !inputUsername.trim())}
+                            className="w-full px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                          >
+                            {loading ? "Checking DNA..." : "Check DNA"}
+                          </button>
+                        </div>
                       ) : (
                         // After checking DNA: Show user profile + casts
                         <>
