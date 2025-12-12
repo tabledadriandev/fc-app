@@ -622,7 +622,7 @@ export default function TANFTMinterPro() {
                   </div>
                 </div>
               )}
-              <div className="text-xs sm:text-sm text-gray-600 px-4">Using AI to transform your PFP into a luxury chef NFT...</div>
+              <div className="text-xs sm:text-sm text-gray-600 px-4">Using AI to transform your PFP into a Table d'Adrian member in a DeSci universe...</div>
             </div>
           )}
 
