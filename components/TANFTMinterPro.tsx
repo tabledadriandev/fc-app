@@ -948,7 +948,7 @@ export default function TANFTMinterPro() {
         <div className="mt-6 sm:mt-8 border-4 border-black p-3 sm:p-4 bg-black text-white">
           <div className="text-center">
             <div className="font-bold text-sm sm:text-base">TABLE D'ADRIAN NFT</div>
-            <div className="text-xs sm:text-sm mt-1">Powered by Base Network • AI Generated with Replicate</div>
+            <div className="text-xs sm:text-sm mt-1">Powered by Base Network • AI Generated with Replicate (Image-to-Image)</div>
           </div>
         </div>
 

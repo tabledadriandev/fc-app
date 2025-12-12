@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import Replicate from "replicate";
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,79 +25,152 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Build prompt emphasizing Table d'Adrian branding + user DNA/PFP + casts
-    const prompt = `Portrait of ${username}, Table d'Adrian member in a DeSci universe, Table d'Adrian NFT collection. 
-    ${castContext}Style: professional anime art, Studio Ghibli inspired, scientific aesthetic. 
-    Features: Premium lab attire, sophisticated demeanor, scientific mastery evident, DeSci researcher. 
-    Background: futuristic DeSci research station, scientific laboratory, cutting-edge technology. 
-    Quality: high resolution, NFT ready, professional portrait, unique character design`;
+    // Build prompt for Studio Ghibli + DeSci style transformation
+    const stylePrompt = `Table d'Adrian member in a DeSci universe, professional anime art style, Studio Ghibli inspired, scientific aesthetic. ${castContext}Premium lab attire, sophisticated demeanor, scientific mastery evident, DeSci researcher. Background: futuristic DeSci research station, scientific laboratory, cutting-edge technology. High resolution, NFT ready, professional portrait, maintain exact facial features and likeness from the original image`;
 
     let nftImageUrl: string;
 
-    // Use Pollinations.ai - add cache busting and better PFP integration
-    const generateWithPollinations = async (promptText: string, imageUrl?: string): Promise<string> => {
+    // Use Replicate for true image-to-image transformation to preserve PFP likeness
+    const generateWithReplicate = async (imageUrl: string, promptText: string): Promise<string> => {
       try {
-        let finalPrompt = promptText;
+        const replicate = new Replicate({
+          auth: process.env.REPLICATE_API_TOKEN || "",
+        });
+
+        // Clean the PFP URL (remove cache busting params)
+        const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
         
-        // If we have an image URL, enhance the prompt to better reflect the PFP
-        // Since Pollinations doesn't support direct image input, we'll make the prompt more specific
-        if (imageUrl) {
-          try {
-            // Remove cache busting params from URL for fetching
-            const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
-            
-            // Download the PFP to verify it's accessible and add to prompt
-            const imageResponse = await fetch(cleanImageUrl, {
-              headers: {
-                'Accept': 'image/*',
-                'Cache-Control': 'no-cache',
+        // Download the PFP image to convert to base64 or use URL directly
+        console.log('Downloading PFP for image-to-image transformation:', cleanImageUrl);
+        const imageResponse = await fetch(cleanImageUrl, {
+          headers: {
+            'Accept': 'image/*',
+            'Cache-Control': 'no-cache',
+          },
+        });
+
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to download PFP: ${imageResponse.status}`);
+        }
+
+        const imageBlob = await imageResponse.blob();
+        const imageBuffer = await imageBlob.arrayBuffer();
+        const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+        const imageDataUrl = `data:${imageBlob.type};base64,${imageBase64}`;
+
+        console.log('PFP downloaded, starting image-to-image transformation with Replicate');
+
+        // Use IP-Adapter FaceID Plus for best likeness preservation
+        // This model is specifically designed to preserve facial features
+        console.log('Using IP-Adapter FaceID Plus for image-to-image transformation');
+        
+        try {
+          // Try IP-Adapter FaceID Plus first (best for preserving facial features)
+          const output = await replicate.run(
+            "lucataco/ip-adapter-faceid-plus" as `${string}/${string}`,
+            {
+              input: {
+                image: imageDataUrl,
+                prompt: promptText,
+                strength: 0.75, // Balance: 0.75 = preserve likeness while applying style
+                num_outputs: 1,
+                guidance_scale: 7.5,
+                num_inference_steps: 30,
+                face_strength: 0.8, // High face strength to preserve facial features
               },
-            });
-            
-            if (imageResponse.ok) {
-              // Add unique identifier and timestamp to ensure fresh generation
-              const timestamp = Date.now();
-              const randomId = Math.floor(Math.random() * 1000000);
-              finalPrompt = `${promptText}. Transform this into a DeSci researcher portrait that captures the essence and visual style of the user's profile picture. The character should reflect the colors, mood, and aesthetic of their current PFP (generation ID: ${randomId}, timestamp: ${timestamp}).`;
-              console.log('PFP downloaded successfully, enhancing prompt');
             }
-          } catch (imgErr) {
-            console.log('Could not download PFP, using enhanced text prompt:', imgErr);
-            // Still enhance prompt even if download fails
-            const timestamp = Date.now();
-            finalPrompt = `${promptText}. Create a portrait that reflects the user's current profile picture style and aesthetic (timestamp: ${timestamp}).`;
+          );
+
+          if (output && Array.isArray(output) && output.length > 0) {
+            const imageUrl = output[0] as string;
+            if (imageUrl && imageUrl.startsWith('http')) {
+              console.log('IP-Adapter FaceID Plus transformation successful');
+              return imageUrl;
+            }
+          }
+        } catch (ipAdapterError: any) {
+          console.log('IP-Adapter FaceID Plus failed, trying regular IP-Adapter:', ipAdapterError?.message);
+          
+          // Fallback to regular IP-Adapter
+          try {
+            const output = await replicate.run(
+              "lucataco/ip-adapter" as `${string}/${string}`,
+              {
+                input: {
+                  image: imageDataUrl,
+                  prompt: promptText,
+                  strength: 0.7, // Slightly lower strength to preserve more of original
+                  num_outputs: 1,
+                  guidance_scale: 7.5,
+                  num_inference_steps: 30,
+                },
+              }
+            );
+
+            if (output && Array.isArray(output) && output.length > 0) {
+              const imageUrl = output[0] as string;
+              if (imageUrl && imageUrl.startsWith('http')) {
+                console.log('IP-Adapter transformation successful');
+                return imageUrl;
+              }
+            }
+          } catch (ipError: any) {
+            console.log('IP-Adapter also failed, trying fofr/image-to-image:', ipError?.message);
+            
+            // Last fallback: fofr/image-to-image
+            try {
+              const output = await replicate.run(
+                "fofr/image-to-image" as `${string}/${string}`,
+                {
+                  input: {
+                    image: imageDataUrl,
+                    prompt: promptText,
+                    strength: 0.7,
+                    num_outputs: 1,
+                  },
+                }
+              );
+
+              if (output && Array.isArray(output) && output.length > 0) {
+                const imageUrl = output[0] as string;
+                if (imageUrl && imageUrl.startsWith('http')) {
+                  console.log('fofr/image-to-image transformation successful');
+                  return imageUrl;
+                }
+              }
+            } catch (fofrError) {
+              console.log('All Replicate models failed');
+              throw ipAdapterError; // Throw original error
+            }
           }
         }
+
+        throw new Error('All image-to-image models failed');
+      } catch (error: any) {
+        console.error('Replicate image-to-image error:', error);
+        throw new Error(`Image transformation failed: ${error?.message || 'Unknown error'}`);
+      }
+    };
+
+    // Fallback to Pollinations.ai if Replicate fails or no API token
+    const generateWithPollinations = async (promptText: string): Promise<string> => {
+      try {
+        const encodedPrompt = encodeURIComponent(promptText);
+        const seed = Math.floor(Math.random() * 1000000);
+        const apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}`;
         
-        // Encode prompt for URL - add cache busting to ensure fresh generation
-        const cacheBuster = Date.now();
-        const seed = Math.floor(Math.random() * 1000000); // Random seed for unique generation each time
-        const encodedPrompt = encodeURIComponent(finalPrompt);
-        // Use flux model for better quality, set dimensions, add seed for variation
-        let apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}&_cb=${cacheBuster}`;
-        
-        console.log('Generating with Pollinations.ai, PFP URL:', imageUrl || 'none', 'Seed:', seed);
-        
-        // Pollinations returns the image directly as a URL
         const response = await fetch(apiUrl, {
           method: 'GET',
           redirect: 'follow',
-          headers: {
-            'Accept': 'image/*',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-          },
+          headers: { 'Accept': 'image/*' },
         });
         
         if (!response.ok) {
           throw new Error(`Pollinations API returned status ${response.status}`);
         }
         
-        // Get the final image URL from the response
         const generatedImageUrl = response.url;
-        
         if (!generatedImageUrl || !generatedImageUrl.startsWith('http')) {
-          // If we don't get a direct URL, convert blob to data URL
           const imageBlob = await response.blob();
           const imageBuffer = await imageBlob.arrayBuffer();
           const imageBase64 = Buffer.from(imageBuffer).toString('base64');
@@ -109,17 +185,29 @@ export async function POST(req: NextRequest) {
     };
 
     if (pfpUrl) {
-      // Transform user PFP - ensure we get the latest version
-      console.log('Generating NFT from PFP:', pfpUrl);
-      // Remove any existing cache params and add fresh one
+      // Transform user PFP using image-to-image to preserve exact likeness
+      console.log('Generating NFT from PFP with image-to-image transformation:', pfpUrl);
       const cleanPfpUrl = pfpUrl.split('?')[0].split('&')[0];
       const pfpUrlWithCache = `${cleanPfpUrl}?t=${Date.now()}&r=${Math.random()}`;
-      nftImageUrl = await generateWithPollinations(prompt, pfpUrlWithCache);
-      console.log('NFT generated successfully with Pollinations.ai');
+      
+      try {
+        // Try Replicate first for true image-to-image
+        if (process.env.REPLICATE_API_TOKEN) {
+          nftImageUrl = await generateWithReplicate(pfpUrlWithCache, stylePrompt);
+          console.log('NFT generated successfully with Replicate image-to-image');
+        } else {
+          throw new Error('Replicate API token not configured');
+        }
+      } catch (replicateError) {
+        console.log('Replicate failed, falling back to Pollinations:', replicateError);
+        // Fallback to Pollinations if Replicate fails
+        nftImageUrl = await generateWithPollinations(`${stylePrompt}. Transform this profile picture into the described style while maintaining exact facial features and likeness.`);
+        console.log('NFT generated successfully with Pollinations.ai (fallback)');
+      }
     } else {
       // Generate from scratch
       console.log('Generating NFT from scratch');
-      nftImageUrl = await generateWithPollinations(prompt);
+      nftImageUrl = await generateWithPollinations(stylePrompt);
       console.log('NFT generated successfully with Pollinations.ai');
     }
 
