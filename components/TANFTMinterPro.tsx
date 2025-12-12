@@ -81,7 +81,7 @@ export default function TANFTMinterPro() {
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="border-2 border-black p-4">
               <div className="text-sm font-bold mb-1">PRICE</div>
-              <div className="text-2xl font-black">FREE</div>
+              <div className="text-2xl font-black">0.003 ETH</div>
             </div>
             <div className="border-2 border-black p-4">
               <div className="text-sm font-bold mb-1">SUPPLY</div>
@@ -96,8 +96,7 @@ export default function TANFTMinterPro() {
           {/* Description */}
           <div className="border-2 border-black p-4 mb-8 bg-gray-50">
             <p className="text-sm">
-              Mint your exclusive dining experience NFT. Each token grants access to 
-              private chef services and wellness consultations.
+              Mint a $tabledadrian NFT, all the fees goes in the LP of the token.
             </p>
           </div>
 
@@ -152,6 +151,7 @@ export default function TANFTMinterPro() {
           <div className="flex justify-between items-center">
             <div className="font-bold">421 MINTED</div>
             <div className="font-bold">579 REMAINING</div>
+            <div className="font-bold">1.263 ETH RAISED</div>
           </div>
         </div>
 
