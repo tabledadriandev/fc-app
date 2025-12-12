@@ -29,7 +29,7 @@ export default function TANFTMinterPro() {
         
         // Get Ethereum provider from Farcaster SDK (handles wallet automatically)
         try {
-          const ethereumProvider = sdk.wallet.getEthereumProvider();
+          const ethereumProvider = await sdk.wallet.getEthereumProvider();
           
           if (ethereumProvider && !isConnected) {
             // Provider is available - try to connect
@@ -238,7 +238,7 @@ export default function TANFTMinterPro() {
       let hash: string;
       
       try {
-        const ethereumProvider = sdk.wallet.getEthereumProvider();
+        const ethereumProvider = await sdk.wallet.getEthereumProvider();
         
         if (ethereumProvider) {
           // Send transaction via Farcaster wallet provider (opens in Farcaster wallet)
