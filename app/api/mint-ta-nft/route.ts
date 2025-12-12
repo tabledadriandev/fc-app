@@ -41,16 +41,25 @@ export async function POST(req: NextRequest) {
       const value = parseEther("0.001");
       console.log('Transaction value parsed:', value.toString());
 
+      // Convert BigInt to hex string for JSON serialization
+      // The frontend will convert it back to the proper format
+      const valueHex = `0x${value.toString(16)}`;
+
       // Simple transaction - just send ETH to liquidity pool
       // NFT ownership is stored in database, no contract needed
       const transaction = {
         to: LIQUIDITY_POOL as `0x${string}`,
-        value: value,
+        value: valueHex, // Send as hex string to avoid BigInt serialization issues
+        valueBigInt: value.toString(), // Also include as string for reference
         chainId: 8453,
         data: "0x" as `0x${string}`, // No contract call needed
       };
 
-      console.log('Transaction prepared:', transaction);
+      console.log('Transaction prepared:', {
+        to: transaction.to,
+        value: transaction.value,
+        chainId: transaction.chainId
+      });
 
       return NextResponse.json({
         success: true,

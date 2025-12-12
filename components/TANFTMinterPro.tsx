@@ -567,11 +567,20 @@ export default function TANFTMinterPro() {
           }
           
           // Ensure value is properly formatted as hex string
-          const valueBigInt = typeof data.transaction.value === 'string' 
-            ? BigInt(data.transaction.value) 
-            : BigInt(data.transaction.value);
-          const valueHex = valueBigInt.toString(16);
-          const valueWithPrefix = (valueHex.startsWith('0x') ? valueHex : `0x${valueHex}`) as `0x${string}`;
+          // The API now returns value as a hex string, but we need to handle both formats
+          let valueWithPrefix: `0x${string}`;
+          
+          if (typeof data.transaction.value === 'string' && data.transaction.value.startsWith('0x')) {
+            // Already a hex string
+            valueWithPrefix = data.transaction.value as `0x${string}`;
+          } else {
+            // Convert BigInt or string to hex
+            const valueBigInt = typeof data.transaction.value === 'string' 
+              ? BigInt(data.transaction.value) 
+              : BigInt(data.transaction.value);
+            const valueHex = valueBigInt.toString(16);
+            valueWithPrefix = (valueHex.startsWith('0x') ? valueHex : `0x${valueHex}`) as `0x${string}`;
+          }
           
           // Format chain ID as hex (Base = 8453 = 0x2105)
           const chainIdHex = `0x${data.transaction.chainId.toString(16)}` as `0x${string}`;
@@ -703,7 +712,7 @@ export default function TANFTMinterPro() {
             }
             throw new Error(`Transaction failed: ${fallbackMsg}`);
           }
-        } else {
+      } else {
           throw new Error(`Transaction failed: ${errorMessage}. Please make sure your wallet is connected to Base network and has enough ETH (0.001 ETH + gas fees).`);
         }
       }
@@ -786,7 +795,7 @@ export default function TANFTMinterPro() {
                     <div className="font-bold text-sm sm:text-base">WALLET CONNECTED</div>
                     <div className="font-mono text-xs sm:text-sm truncate">
                       {address?.substring(0, 6)}...{address?.substring(address.length - 4)}
-                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -807,12 +816,12 @@ export default function TANFTMinterPro() {
             </div>
           </div>
 
-              {/* Description */}
+          {/* Description */}
               <div className="border-2 border-black p-3 sm:p-4 mb-6 sm:mb-8 bg-gray-50">
                 <p className="text-xs sm:text-sm">
                   Mint a $tabledadrian NFT generated from your Farcaster profile picture. All fees (0.001 ETH) go to the LP of the token.
-                </p>
-              </div>
+            </p>
+          </div>
 
 
               {/* Main Mint Button - Auto-fetches user data */}
