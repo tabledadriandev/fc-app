@@ -108,19 +108,30 @@ export default function TANFTMinterPro() {
   };
 
   const mintNFT = async () => {
-    if (!address) {
+    if (!address || !isConnected) {
       setError("Please connect your wallet first");
-      return;
-    }
-
-    // Wait for wallet client if not ready
-    if (!walletClient) {
-      setError("Wallet not ready. Please try again in a moment.");
       return;
     }
 
     setLoading(true);
     setError("");
+
+    // Get wallet client - try multiple ways
+    let client = walletClient;
+    if (!client) {
+      try {
+        // Try to get it directly
+        client = await getWalletClient(config);
+      } catch (err) {
+        console.log('Could not get wallet client directly');
+      }
+    }
+
+    if (!client) {
+      setError("Wallet not ready. Please make sure MetaMask is connected to Base network and try again.");
+      setLoading(false);
+      return;
+    }
 
     // If we don't have user data yet, fetch it automatically from wallet
     if (!userData || !nftImageUrl) {
@@ -201,11 +212,10 @@ export default function TANFTMinterPro() {
       }
 
       // Send transaction - 0.003 ETH to liquidity pool on Base chain
-      const hash = await walletClient.sendTransaction({
+      const hash = await client.sendTransaction({
         to: data.transaction.to as `0x${string}`,
         value: data.transaction.value, // 0.003 ETH
-        account: address,
-        chain: publicClient?.chain, // Use Base chain from publicClient
+        account: address as `0x${string}`,
       });
 
       setTxHash(hash);
