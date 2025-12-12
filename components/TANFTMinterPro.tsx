@@ -585,48 +585,16 @@ export default function TANFTMinterPro() {
           // Format chain ID as hex (Base = 8453 = 0x2105)
           const chainIdHex = `0x${data.transaction.chainId.toString(16)}` as `0x${string}`;
           
-          // Estimate gas first to ensure transaction will succeed
-          let gasEstimate: string | undefined;
-          try {
-            console.log('Estimating gas for transaction...');
-            gasEstimate = await ethereumProvider.request({
-              method: 'eth_estimateGas',
-              params: [{
-                from: walletAddress as `0x${string}`,
-                to: data.transaction.to as `0x${string}`,
-                value: valueWithPrefix,
-                data: data.transaction.data || '0x',
-              }],
-            }) as string;
-            console.log('Gas estimate:', gasEstimate);
-          } catch (gasErr: any) {
-            console.error('Gas estimation failed:', gasErr);
-            const gasErrorMsg = gasErr?.message || String(gasErr);
-            if (gasErrorMsg.includes('insufficient funds') || gasErrorMsg.includes('insufficient balance')) {
-              throw new Error('Insufficient balance. You need at least 0.001 ETH + gas fees (approximately 0.0001 ETH) in your wallet to mint.');
-            }
-            if (gasErrorMsg.includes('execution reverted') || gasErrorMsg.includes('revert')) {
-              throw new Error('Transaction would fail. Please check that the recipient address is valid and can receive ETH.');
-            }
-            // Continue anyway, gas estimation is optional
-            console.log('Continuing without gas estimate');
-          }
-
+          // Build transaction params - let wallet auto-estimate gas
+          // Farcaster provider doesn't support eth_estimateGas, so we let the wallet handle it
           const txParams: any = {
             from: walletAddress as `0x${string}`,
             to: data.transaction.to as `0x${string}`,
             value: valueWithPrefix,
             data: data.transaction.data || '0x',
             chainId: chainIdHex,
+            // Don't set gas - let wallet auto-estimate
           };
-
-          // Add gas estimate if available (add 20% buffer for safety)
-          if (gasEstimate) {
-            const gasBigInt = BigInt(gasEstimate);
-            const gasWithBuffer = gasBigInt + (gasBigInt * BigInt(20)) / BigInt(100); // 20% buffer
-            txParams.gas = `0x${gasWithBuffer.toString(16)}`;
-            console.log('Using gas estimate with 20% buffer:', txParams.gas);
-          }
           
           console.log('Sending transaction via Farcaster SDK:', txParams);
           
@@ -664,6 +632,11 @@ export default function TANFTMinterPro() {
             // Check if it's a user rejection
             if (errorMsg.includes('rejected') || errorMsg.includes('denied') || errorMsg.includes('User rejected') || errorCode === 4001 || errorCode === 'ACTION_REJECTED') {
               throw new Error('Transaction was rejected. Please try again when you\'re ready to confirm.');
+            }
+            
+            // Check for execution reverted (transaction would fail)
+            if (errorMsg.includes('execution reverted') || errorMsg.includes('revert') || errorMsg.includes('Transaction failure')) {
+              throw new Error('Transaction would fail. The recipient address may not accept direct ETH transfers. Please verify the liquidity pool address is correct and can receive ETH.');
             }
             
             // Check if modal didn't open (provider error)
