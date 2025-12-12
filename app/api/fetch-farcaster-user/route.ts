@@ -176,10 +176,16 @@ export async function GET(request: Request) {
     }
 
     if (!targetFid) {
-      console.log('No FID found for:', { username, wallet, fid });
+      console.error('No FID found after trying all methods:', { username, wallet, fid });
+      console.error('Tried: Hub API, Neynar API, Fname registry, Pinata, wallet verifications');
       return NextResponse.json({
         error: 'User not found. Please check your username or ensure your wallet is connected to Farcaster.',
-        details: 'Try your exact Farcaster username (without @) or make sure your wallet is verified on Warpcast.'
+        details: 'Try your exact Farcaster username (without @) or make sure your wallet is verified on Warpcast.',
+        debug: {
+          triedUsername: username,
+          triedWallet: wallet,
+          triedFid: fid
+        }
       }, { status: 404 });
     }
 
@@ -199,73 +205,125 @@ export async function GET(request: Request) {
       console.log('Could not get verifications');
     }
 
-    try {
-      // Try official Farcaster API first
-      const userRes = await fetch(`https://api.farcaster.xyz/v2/user?fid=${targetFid}`, {
+    // Try multiple sources for user data in parallel
+    const userDataPromises = [
+      // 1. Official Farcaster API
+      fetch(`https://api.farcaster.xyz/v2/user?fid=${targetFid}`, {
         headers: { 'Accept': 'application/json' }
-      });
-      if (userRes.ok) {
-        const data = await userRes.json();
-        if (data.result?.user) {
-          userData = { user: data.result.user };
-        } else if (data.user) {
-          userData = { user: data.user };
-        }
-        console.log('Got user data from official API');
-      } else {
-        console.log('Official API failed with status:', userRes.status);
-      }
-    } catch (err) {
-      console.log('Official API error:', err);
-    }
-
-    // Fallback to Pinata
-    if (!userData) {
-      try {
-        const pinataUserRes = await fetch(`https://hub.pinata.cloud/v1/userDataByFid?fid=${targetFid}`);
-        if (pinataUserRes.ok) {
-          const pinataData = await pinataUserRes.json();
-          userData = { user: {} };
-
-          // Extract data from messages
-          const messages = pinataData.messages || [];
-          messages.forEach((msg: any) => {
-            const type = msg.data?.userDataBody?.type;
-            const value = msg.data?.userDataBody?.value;
-
-            if (type === 'USER_DATA_TYPE_USERNAME') {
-              userData!.user!.username = value;
-            } else if (type === 'USER_DATA_TYPE_DISPLAY') {
-              userData!.user!.display_name = value;
-            } else if (type === 'USER_DATA_TYPE_PFP') {
-              userData!.user!.pfp_url = value;
-            } else if (type === 'USER_DATA_TYPE_BIO') {
-              userData!.user!.bio = value;
+      })
+        .then(async res => {
+          if (res.ok) {
+            const data = await res.json();
+            if (data.result?.user) {
+              return { user: data.result.user };
+            } else if (data.user) {
+              return { user: data.user };
             }
-          });
-          console.log('Got user data from Pinata');
+          }
+          return null;
+        })
+        .catch(() => null),
+      
+      // 2. Pinata Hub
+      fetch(`https://hub.pinata.cloud/v1/userDataByFid?fid=${targetFid}`)
+        .then(async res => {
+          if (res.ok) {
+            const pinataData = await res.json();
+            const userDataFromPinata: any = { user: {} };
+            const messages = pinataData.messages || [];
+            messages.forEach((msg: any) => {
+              const type = msg.data?.userDataBody?.type;
+              const value = msg.data?.userDataBody?.value;
+
+              if (type === 'USER_DATA_TYPE_USERNAME') {
+                userDataFromPinata.user.username = value;
+              } else if (type === 'USER_DATA_TYPE_DISPLAY') {
+                userDataFromPinata.user.display_name = value;
+              } else if (type === 'USER_DATA_TYPE_PFP') {
+                userDataFromPinata.user.pfp_url = value;
+              } else if (type === 'USER_DATA_TYPE_BIO') {
+                userDataFromPinata.user.bio = value;
+              }
+            });
+            return userDataFromPinata;
+          }
+          return null;
+        })
+        .catch(() => null),
+      
+      // 3. Try Warpcast API
+      fetch(`https://api.warpcast.com/v2/user-by-fid?fid=${targetFid}`, {
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(async res => {
+          if (res.ok) {
+            const data = await res.json();
+            if (data.result?.user) {
+              return { user: data.result.user };
+            } else if (data.user) {
+              return { user: data.user };
+            }
+          }
+          return null;
+        })
+        .catch(() => null)
+    ];
+
+    const userDataResults = await Promise.all(userDataPromises);
+    
+    // Merge all results, prioritizing official API
+    for (const result of userDataResults) {
+      if (result?.user) {
+        if (!userData) {
+          userData = { user: {} };
         }
-      } catch (err) {
-        console.log('Pinata user data failed');
+        // Merge data, keeping existing values if new ones are missing
+        const existingUser = userData.user || {};
+        userData.user = {
+          username: existingUser.username || result.user.username,
+          display_name: existingUser.display_name || result.user.display_name,
+          pfp_url: existingUser.pfp_url || result.user.pfp_url,
+          bio: existingUser.bio || result.user.bio,
+          ...result.user // Overwrite with result data (prioritize later sources)
+        };
       }
     }
+    
+    console.log('Final userData:', userData);
 
-    if (!userData?.user) {
+    if (!userData || !userData.user) {
       return NextResponse.json({
         error: 'Could not fetch user profile data',
         fid: fid
       }, { status: 500 });
     }
 
+    // Ensure we have a PFP - try to get it from multiple sources if missing
+    let pfpUrl = userData.user.pfp_url;
+    if (!pfpUrl) {
+      // Try to get PFP from verifications endpoint
+      try {
+        const verifRes = await fetch(`https://api.farcaster.xyz/v2/user?fid=${targetFid}`);
+        if (verifRes.ok) {
+          const verifData = await verifRes.json();
+          pfpUrl = verifData.result?.user?.pfp_url || verifData.user?.pfp_url || null;
+        }
+      } catch (err) {
+        console.log('Could not get PFP from verifications');
+      }
+    }
+
     const result = {
       fid: targetFid,
       username: userData.user.username || username || 'Unknown',
       display_name: userData.user.display_name || userData.user.username || null,
-      pfp_url: userData.user.pfp_url || null,
+      pfp_url: pfpUrl || null,
       bio: userData.user.bio || null,
       wallet_address: walletAddress,
       method: fid ? 'fid' : (username ? 'username' : 'wallet')
     };
+    
+    console.log('Returning result with PFP:', result.pfp_url ? 'YES' : 'NO');
 
     console.log('Returning:', result);
     return NextResponse.json(result);

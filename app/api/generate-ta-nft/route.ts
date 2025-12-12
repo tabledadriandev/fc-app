@@ -7,7 +7,7 @@ const replicate = new Replicate({
 
 export async function POST(req: NextRequest) {
   try {
-    const { pfpUrl, username, taBalance } = await req.json();
+    const { pfpUrl, username, taBalance, casts } = await req.json();
 
     if (!username) {
       return NextResponse.json(
@@ -16,9 +16,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build prompt emphasizing Table d'Adrian branding + user DNA/PFP
+    // Extract themes from casts if available
+    let castContext = "";
+    if (casts && Array.isArray(casts) && casts.length > 0) {
+      const castTexts = casts.slice(0, 3).map((cast: any) => cast.text || cast.content || "").filter(Boolean);
+      if (castTexts.length > 0) {
+        castContext = `Based on their recent activity: ${castTexts.join(". ")}. `;
+      }
+    }
+
+    // Build prompt emphasizing Table d'Adrian branding + user DNA/PFP + casts
     const prompt = `Portrait of ${username}, DeSci researcher, Table d'Adrian NFT collection. 
-    Style: professional anime art, Studio Ghibli inspired, scientific aesthetic. 
+    ${castContext}Style: professional anime art, Studio Ghibli inspired, scientific aesthetic. 
     Features: Premium lab attire, sophisticated demeanor, scientific mastery evident. 
     Background: luxury lab, high-end research station. 
     Quality: high resolution, NFT ready, professional portrait, unique character design`;

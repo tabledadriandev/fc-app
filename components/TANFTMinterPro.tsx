@@ -21,7 +21,7 @@ export default function TANFTMinterPro() {
   const [txHash, setTxHash] = useState("");
   const [usernameInput, setUsernameInput] = useState("");
 
-  const generateNFT = useCallback(async (pfpUrl: string, username: string) => {
+  const generateNFT = useCallback(async (pfpUrl: string, username: string, casts: any[] = []) => {
     setLoading(true);
     setError("");
     setStep("generate");
@@ -33,6 +33,7 @@ export default function TANFTMinterPro() {
         body: JSON.stringify({
           pfpUrl,
           username,
+          casts: casts.slice(0, 5), // Send up to 5 recent casts
           taBalance: 0, // Will be checked during mint if needed
         }),
       });
@@ -74,7 +75,10 @@ export default function TANFTMinterPro() {
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Request failed' }));
-        setError(errorData.error || `Request failed with status ${res.status}`);
+        const errorMessage = errorData.error || `Request failed with status ${res.status}`;
+        const errorDetails = errorData.details || '';
+        console.error('User fetch failed:', { status: res.status, error: errorMessage, details: errorData });
+        setError(errorDetails ? `${errorMessage}. ${errorDetails}` : errorMessage);
         setLoading(false);
         setStep("connect");
         return;
@@ -83,9 +87,23 @@ export default function TANFTMinterPro() {
       const data = await res.json();
       setUserData(data);
       
-      // Automatically generate NFT from PFP
+      // Fetch user's casts for NFT generation
+      let castsData = null;
+      if (data.fid) {
+        try {
+          const castsRes = await fetch(`/api/fetch-user-casts?fid=${data.fid}`);
+          if (castsRes.ok) {
+            castsData = await castsRes.json();
+            console.log('Fetched casts:', castsData.casts?.length || 0);
+          }
+        } catch (castsErr) {
+          console.log('Could not fetch casts, continuing without them:', castsErr);
+        }
+      }
+      
+      // Automatically generate NFT from PFP and casts
       if (data.pfp_url) {
-        await generateNFT(data.pfp_url, data.username);
+        await generateNFT(data.pfp_url, data.username, castsData?.casts || []);
       } else {
         setError('No profile picture found. Please ensure your Farcaster profile has a PFP.');
         setLoading(false);
@@ -282,7 +300,8 @@ export default function TANFTMinterPro() {
               console.log('Fetched user data by FID:', fetchedUserData);
             } else {
               const errorData = await userRes.json().catch(() => ({}));
-              console.error('FID lookup failed:', errorData);
+              console.error('FID lookup failed:', { status: userRes.status, error: errorData });
+              // Don't throw here, try wallet fallback
             }
           } else {
             console.log('No FID in context for mint, context.user:', context?.user);
@@ -313,11 +332,14 @@ export default function TANFTMinterPro() {
           }
           
           const userRes = await fetch(`/api/fetch-farcaster-user?wallet=${walletToUse}`);
+          console.log('Wallet lookup response status:', userRes.status);
           if (!userRes.ok) {
             const errorData = await userRes.json().catch(() => ({ error: 'Request failed' }));
-            throw new Error(errorData.error || 'Could not fetch your Farcaster profile');
+            console.error('Wallet lookup failed:', { status: userRes.status, error: errorData });
+            throw new Error(errorData.details ? `${errorData.error}. ${errorData.details}` : (errorData.error || 'Could not fetch your Farcaster profile'));
           }
           fetchedUserData = await userRes.json();
+          console.log('Fetched user data by wallet:', fetchedUserData);
         }
         
         if (!fetchedUserData) {
@@ -325,10 +347,23 @@ export default function TANFTMinterPro() {
         }
         setUserData(fetchedUserData);
         
-        // Generate NFT from PFP if we don't have one yet
+        // Fetch casts for NFT generation
+        let castsData = null;
+        if (fetchedUserData.fid) {
+          try {
+            const castsRes = await fetch(`/api/fetch-user-casts?fid=${fetchedUserData.fid}`);
+            if (castsRes.ok) {
+              castsData = await castsRes.json();
+            }
+          } catch (castsErr) {
+            console.log('Could not fetch casts:', castsErr);
+          }
+        }
+        
+        // Generate NFT from PFP and casts if we don't have one yet
         if (!nftImageUrl && fetchedUserData.pfp_url) {
           setStep("generate");
-          await generateNFT(fetchedUserData.pfp_url, fetchedUserData.username);
+          await generateNFT(fetchedUserData.pfp_url, fetchedUserData.username, castsData?.casts || []);
         } else if (!fetchedUserData.pfp_url) {
           throw new Error('No profile picture found. Please ensure your Farcaster profile has a PFP.');
         }
