@@ -4,8 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useAccount, useConnect, useWalletClient, usePublicClient } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { getWalletClient } from "@wagmi/core";
-import { config } from "@/app/providers";
 
 type Step = "connect" | "fetch" | "generate" | "preview" | "minting" | "success";
 
