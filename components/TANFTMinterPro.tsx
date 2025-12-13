@@ -57,6 +57,8 @@ export default function TANFTMinterPro() {
     ];
     
     let currentPhraseIndex = 0;
+    let progressInterval: NodeJS.Timeout | null = null;
+    
     const updateProgress = () => {
       if (currentPhraseIndex < phrases.length) {
         setCurrentPhrase(phrases[currentPhraseIndex]);
@@ -67,17 +69,23 @@ export default function TANFTMinterPro() {
     
     // Start progress updates IMMEDIATELY - THIS WILL ALWAYS SHOW!
     updateProgress();
-    const progressInterval = setInterval(() => {
+    progressInterval = setInterval(() => {
       if (currentPhraseIndex < phrases.length) {
         updateProgress();
       } else {
-        clearInterval(progressInterval);
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
       }
     }, 2000); // Update every 2 seconds
     
     // Always complete the progress bar for the full experience
     const completeProgress = () => {
-      clearInterval(progressInterval);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
       setGenerationProgress(100);
       setCurrentPhrase("Generation complete! 🎨");
       
@@ -160,9 +168,13 @@ export default function TANFTMinterPro() {
         setStep("connect");
       }, 2000);
     } finally {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
       setLoading(false);
     }
-  }, []);
+  }, [loading, setError, setStep, setGenerationProgress, setCurrentPhrase, setNftImageUrl]);
 
   const fetchUserData = useCallback(async (walletOrUsernameOrFid: string, isUsername = false, triggerNFTGeneration = true) => {
     if (loading) {
@@ -241,7 +253,7 @@ export default function TANFTMinterPro() {
       setLoading(false);
       setStep("connect");
     }
-  }, [generateNFT]);
+  }, [loading, generateNFT, setUserData, setError, setStep, setLoading]);
 
   // Initialize Farcaster SDK and auto-connect wallet
   useEffect(() => {
@@ -282,7 +294,7 @@ export default function TANFTMinterPro() {
             console.log('Got FID from Farcaster context:', fid);
             // Fetch user data by FID (most reliable method) - NO AUTO NFT GENERATION
             if (!userData) {
-              await fetchUserData(fid.toString(), false, false); // Don't trigger NFT generation automatically
+              fetchUserData(fid.toString(), false, false); // Don't trigger NFT generation automatically
             }
             return; // Success, exit early
           } else {
@@ -318,12 +330,12 @@ export default function TANFTMinterPro() {
                 if (isConnected && address && address.toLowerCase() === walletAddress.toLowerCase()) {
                   // Already connected, just fetch user data if we don't have it - NO AUTO NFT GENERATION
                   if (!userData) {
-                    await fetchUserData(walletAddress, false, false); // Don't trigger NFT generation automatically
+                    fetchUserData(walletAddress, false, false); // Don't trigger NFT generation automatically
                   }
                 } else if (!isConnected && mounted) {
                   // Not connected via wagmi yet, but we have Farcaster wallet
                   // Fetch user data directly using Farcaster wallet address - NO AUTO NFT GENERATION
-                  await fetchUserData(walletAddress, false, false); // Don't trigger NFT generation automatically
+                  fetchUserData(walletAddress, false, false); // Don't trigger NFT generation automatically
                 }
               }
             } catch (connectErr) {
@@ -347,7 +359,7 @@ export default function TANFTMinterPro() {
       mounted = false;
       clearTimeout(timeoutId);
     };
-  }, [isConnected, address, userData, fetchUserData]); // Include all dependencies to prevent stale closures
+  }, [isConnected, address, userData, fetchUserData]); // Include fetchUserData now that it's stable
 
   const mintNFT = async () => {
     if (loading) {
