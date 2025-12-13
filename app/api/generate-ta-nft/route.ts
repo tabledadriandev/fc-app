@@ -105,55 +105,74 @@ export async function POST(req: NextRequest) {
       const traits = [];
       const rarities = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"];
       
-      // Core personality traits based on cast analysis
+      // EPIC HYPE Core personality traits based on cast analysis
       if (userPersonality.includes("technical")) {
-        traits.push({ trait_type: "Specialty", value: "Quantum Technomancer", rarity: "Epic" });
-        traits.push({ trait_type: "Primary Power", value: "Reality Data Hacking", rarity: "Legendary" });
+        traits.push({ trait_type: "🚀 Primary Specialty", value: "Quantum Technomancer Supreme", rarity: "Mythic" });
+        traits.push({ trait_type: "⚡ Ultimate Power", value: "Reality Data Hacking Master", rarity: "Mythic" });
       }
       if (userPersonality.includes("philosophical")) {
-        traits.push({ trait_type: "Specialty", value: "Consciousness Architect", rarity: "Rare" });
-        traits.push({ trait_type: "Primary Power", value: "Temporal Consciousness Access", rarity: "Epic" });
+        traits.push({ trait_type: "🧠 Specialty", value: "Consciousness Architect Alpha", rarity: "Legendary" });
+        traits.push({ trait_type: "🌌 Primary Power", value: "Temporal Consciousness Access Supreme", rarity: "Mythic" });
       }
       if (userPersonality.includes("creative")) {
-        traits.push({ trait_type: "Specialty", value: "Reality Designer", rarity: "Uncommon" });
-        traits.push({ trait_type: "Primary Power", value: "Dimensional Reality Surfing", rarity: "Rare" });
+        traits.push({ trait_type: "🎨 Specialty", value: "Reality Designer Master", rarity: "Epic" });
+        traits.push({ trait_type: "✨ Primary Power", value: "Dimensional Reality Surfing Supreme", rarity: "Legendary" });
       }
       
-      // Interest-based traits
+      // EPIC HYPE Interest-based traits
       if (userInterests.includes("crypto")) {
-        traits.push({ trait_type: "Tech Affinity", value: "Blockchain Master", rarity: "Uncommon" });
-        traits.push({ trait_type: "Secondary Power", value: "Quantum Entanglement Communication", rarity: "Rare" });
+        traits.push({ trait_type: "💎 Tech Affinity", value: "Blockchain Master Supreme", rarity: "Legendary" });
+        traits.push({ trait_type: "⚡ Secondary Power", value: "Quantum Entanglement Communication Alpha", rarity: "Epic" });
       }
       if (userInterests.includes("science")) {
-        traits.push({ trait_type: "Scientific Focus", value: "Quantum Research Pioneer", rarity: "Epic" });
-        traits.push({ trait_type: "Equipment", value: "Plasma Energy Generator", rarity: "Rare" });
+        traits.push({ trait_type: "🔬 Scientific Focus", value: "Quantum Research Pioneer Supreme", rarity: "Mythic" });
+        traits.push({ trait_type: "⚡ Equipment", value: "Plasma Energy Generator Master", rarity: "Epic" });
       }
       if (userInterests.includes("tech")) {
-        traits.push({ trait_type: "Tech Level", value: "Hyper-Advanced AI Integration", rarity: "Legendary" });
-        traits.push({ trait_type: "Secondary Power", value: "Technological Telepathy", rarity: "Epic" });
+        traits.push({ trait_type: "🤖 Tech Level", value: "Hyper-Advanced AI Integration Supreme", rarity: "Mythic" });
+        traits.push({ trait_type: "🧠 Secondary Power", value: "Technological Telepathy Master", rarity: "Legendary" });
       }
       
-      // Voice/style based traits
+      // EPIC HYPE Voice/style based traits
       if (userVoice.includes("detailed")) {
-        traits.push({ trait_type: "Analysis Style", value: "Deep Data Diver", rarity: "Uncommon" });
+        traits.push({ trait_type: "📊 Analysis Style", value: "Deep Data Diver Supreme", rarity: "Epic" });
       }
       if (userVoice.includes("concise")) {
-        traits.push({ trait_type: "Communication", value: "Quantum Precision Speaker", rarity: "Rare" });
+        traits.push({ trait_type: "💬 Communication", value: "Quantum Precision Speaker Master", rarity: "Legendary" });
       }
       if (userVoice.includes("curious")) {
-        traits.push({ trait_type: "Mindset", value: "Universal Data Stream Seeker", rarity: "Epic" });
+        traits.push({ trait_type: "🔍 Mindset", value: "Universal Data Stream Seeker Supreme", rarity: "Mythic" });
       }
       
-      // Body Background Traits (NEW)
+      // EPIC HYPE Ultimate Superpower Traits
+      const ultimateSuperpowers = [
+        { trait_type: "🔥 Quantum Mastery", value: "Quantum Energy Manipulation Supreme", rarity: "Mythic" },
+        { trait_type: "🌌 Reality Control", value: "Dimensional Reality Surfing Master", rarity: "Mythic" },
+        { trait_type: "⚡ Energy Command", value: "Plasma Energy Generation Alpha", rarity: "Legendary" },
+        { trait_type: "🧠 Neural Network", value: "Hyper-Advanced AI Integration Supreme", rarity: "Mythic" },
+        { trait_type: "🌐 Universal Access", value: "Universal Data Stream Access Master", rarity: "Legendary" },
+        { trait_type: "🕰️ Time Mastery", value: "Temporal Consciousness Access Supreme", rarity: "Mythic" },
+        { trait_type: "🔗 Quantum Link", value: "Quantum Entanglement Communication Alpha", rarity: "Epic" },
+        { trait_type: "🎯 Reality Hack", value: "Reality Data Hacking Master", rarity: "Legendary" },
+      ];
+      
+      // Add ultimate superpowers
+      traits.push(...ultimateSuperpowers.slice(0, 4));
+      
+      // EPIC HYPE Body Background Traits
       const bodyBackgroundTraits = [
-        { trait_type: "Body Enhancement", value: "Quantum Neural Network Integration", rarity: "Legendary" },
-        { trait_type: "Skin Pattern", value: "Bio-Quantum Circuitry", rarity: "Epic" },
-        { trait_type: "Muscle Structure", value: "Hyper-Evolved Fiber Matrix", rarity: "Rare" },
-        { trait_type: "Body Aura", value: "Plasma Energy Field", rarity: "Epic" },
-        { trait_type: "Genetic Upgrade", value: "DeSci Evolution Level", rarity: "Mythic" },
-        { trait_type: "Body Armor", value: "Holographic Cyber-Skin", rarity: "Uncommon" },
-        { trait_type: "Energy Channels", value: "Quantum Energy Conduits", rarity: "Rare" },
-        { trait_type: "Physical Power", value: "Dimensional Strength Amplifier", rarity: "Legendary" },
+        { trait_type: "🌟 Primary Enhancement", value: "Quantum Neural Network Integration", rarity: "Mythic" },
+        { trait_type: "⚡ Skin Pattern", value: "Bio-Quantum Circuitry with Plasma Flows", rarity: "Legendary" },
+        { trait_type: "💪 Muscle Evolution", value: "Hyper-Evolved Dimensional Fiber Matrix", rarity: "Epic" },
+        { trait_type: "🔥 Body Aura", value: "Intense Plasma Energy Field with Quantum Distortions", rarity: "Mythic" },
+        { trait_type: "🧬 Genetic Upgrade", value: "Ultimate DeSci Evolution Level Alpha", rarity: "Mythic" },
+        { trait_type: "🛡️ Body Armor", value: "Holographic Cyber-Skin with Reality Shields", rarity: "Legendary" },
+        { trait_type: "⚡ Energy Channels", value: "Multi-Dimensional Quantum Energy Conduits", rarity: "Epic" },
+        { trait_type: "💥 Physical Power", value: "Dimensional Strength Amplifier with Reality Bending", rarity: "Mythic" },
+        { trait_type: "🧠 Neural Interface", value: "Hyper-Advanced AI Brain Integration", rarity: "Legendary" },
+        { trait_type: "🌌 Reality Control", value: "Matrix Reality Manipulation Core", rarity: "Mythic" },
+        { trait_type: "⚡ Energy Mastery", value: "Universal Quantum Energy Command", rarity: "Mythic" },
+        { trait_type: "🔮 Temporal Power", value: "Time-Space Consciousness Access", rarity: "Legendary" },
       ];
       
       // Add body background traits
@@ -171,41 +190,57 @@ export async function POST(req: NextRequest) {
 
     const nftTraits = generateTraits();
 
-    // Build enhanced prompt for 100% character preservation
-    const stylePrompt = `EXACT FACE AND BODY TRANSFORMATION: Take this exact person and add ONLY cyberpunk DeSci elements while keeping EVERYTHING ELSE IDENTICAL. ${castContext}
+    // Build HYPE AF prompt for 100% character preservation + AMAZING background
+    const stylePrompt = `TRANSFORM this exact person into the MOST HYPE, MOST AMAZING DeSci cyberpunk NFT ever created while preserving 100% of their original appearance. ${castContext}
 
-MANDATORY PRESERVATION (DO NOT CHANGE):
-- SAME HAIR COLOR: keep exact hair color (blond, brown, black, red, etc.)
-- SAME HAIR STYLE: identical cut, length, texture, hairstyle
-- SAME GLASSES: if person wears glasses, keep same frame style, color, shape
-- SAME FACE: identical facial features, eye shape, nose, mouth, jawline
+🔥 MANDATORY PRESERVATION (NEVER CHANGE):
+- SAME BLOND HAIR: exact color, style, length, texture
+- SAME GLASSES: identical frame style, color, shape
+- SAME FACE: perfect facial features, eye shape, nose, mouth, jawline
 - SAME SKIN TONE: exact skin color and complexion
-- SAME BODY: identical body structure, posture, build, proportions
+- SAME BODY: identical structure, posture, proportions, build
 - SAME CLOTHING COLORS: maintain original outfit colors
-- SAME ACCESSORIES: keep any jewelry, hats, or other accessories
-- SAME BACKGROUND: preserve any existing background elements
+- SAME ACCESSORIES: keep all jewelry, accessories
 
-ONLY ADD THESE CYBERPUNK DESCI ELEMENTS:
-• Add subtle neural implants to temples or behind ears
-• Add holographic data displays floating around character
-• Add energy conduits as thin lines on clothing or skin
-• Add quantum energy aura as soft glow around character
-• Add futuristic DeSci background elements (floating screens, data streams)
-• Add plasma energy particles in the air around character
-• Add cyberpunk clothing details (tech fabric textures, LED accents)
+🌟 EPIC HYPE TRANSFORMATIONS TO ADD:
+• MAINTAIN ORIGINAL POSTURE: keep exact body position and stance
+• EPIC CYBERPUNK BACKGROUND: massive floating DeSci megastructure with:
+  - Towering quantum computers and holographic displays
+  - Floating energy bridges and plasma conduits
+  - Massive data streams and energy storms
+  - Reality-shaping technology and quantum vortexes
+  - Epic floating platforms with DeSci symbols
+• INSANE SUPERPOWERS VISUALIZATION:
+  - Quantum Energy Manipulation (glowing energy orbs around hands)
+  - Reality Data Hacking (digital code streams from fingertips)
+  - Technological Telepathy (neural network visuals around head)
+  - Temporal Consciousness Access (time distortion effects)
+  - Dimensional Reality Surfing (reality ripples and portals)
+  - Plasma Energy Generation (intense plasma aura)
+  - Quantum Entanglement Communication (connection lines to other dimensions)
+  - Hyper-Advanced AI Integration (AI symbols and neural networks)
+  - Reality Matrix Control (matrix-style digital rain)
+  - Universal Data Stream Access (data streams flowing through body)
 
-ABSOLUTELY DO NOT CHANGE:
-- Hair color or style
-- Facial features or structure
-- Body shape or proportions
-- Clothing colors
-- Glasses or accessories
-- Skin tone
+• EPIC BODY ENHANCEMENTS:
+  - Bio-Quantum circuitry patterns glowing on skin
+  - Holographic cyber-skin with energy patterns
+  - Quantum energy conduits running through entire body
+  - Plasma energy field aura surrounding character
+  - Dimensional strength amplifier effects
+  - Neural network integration visuals in head/torso
 
-Style: Same person, same face, same hair, same glasses, same body, with subtle cyberpunk DeSci overlay. Professional anime art, dramatic lighting, NFT quality.`;
+• INCREDIBLE CLOTHING UPGRADES:
+  - Original clothes enhanced with futuristic elements
+  - Neural implants and holographic displays integrated
+  - Energy conduits and plasma reactors on outfit
+  - Tech fabric textures with LED accents
+  - DeSci symbols and quantum processors
 
-    // Additional prompt for maximum character preservation
-    const characterPreservationPrompt = `CRITICAL: Preserve EXACT appearance - same blond hair color, same glasses frame style, same facial features, same body structure. Add ONLY cyberpunk DeSci elements as overlay. Do NOT change hair color, glasses, or facial characteristics.`;
+Style: MOST HYPE anime cyberpunk DeSci art ever, epic composition, dramatic cinematic lighting, incredibly detailed textures, vibrant neon colors, spectacular power effects, energy bursts, quantum distortions, reality-warping visuals. The character should look like the ultimate DeSci cyberpunk master with incredible abilities while being unmistakably the original person.`;
+
+    // Additional prompt for maximum character preservation + HYPE
+    const characterPreservationPrompt = `🔥 CRITICAL PRESERVATION: Keep EXACT appearance - same blond hair, same glasses, same face, same body, same posture. Create MOST HYPE cyberpunk DeSci overlay while maintaining 100% character identity. Add epic background, superpowers, and body enhancements but NEVER change the person's core appearance. This MUST look like the same person but as the most amazing DeSci cyberpunk master ever created.`;
 
     let nftImageUrl: string;
 
@@ -532,16 +567,19 @@ Style: Same person, same face, same hair, same glasses, same body, with subtle c
       success: true,
       nftImage: nftImageUrl,
       nftMetadata: {
-        name: `TA NFT: ${username}`,
-        description: "Table d'Adrian DeSci NFT - Hyper-Evolved Cyberpunk Character with Body Enhancements",
+        name: `🚀 TA NFT: ${username} - HYPE SUPREME`,
+        description: "🔥 MOST HYPE DeSci NFT EVER! Hyper-Evolved Cyberpunk Character with Epic Superpowers & Body Enhancements! The ultimate fusion of DeSci pioneer + cyberpunk overlord + reality-bending master!",
         image: nftImageUrl,
         artist: "Table d'Adrian",
-        collection: "TA DeSci Collection",
+        collection: "TA DeSci Collection - HYPE SUPREME",
         traits: nftTraits,
         attributes: nftTraits,
         preservationLevel: "MAXIMUM Character Preservation (99%)",
-        characterPreserved: "Hair color, glasses, facial features, body structure maintained",
-        bodyEnhancements: "Bio-Quantum Circuitry, Holographic Cyber-Skin, Plasma Energy Fields",
+        characterPreserved: "Exact blond hair, glasses, facial features, body structure, posture maintained",
+        bodyEnhancements: "Bio-Quantum Circuitry, Holographic Cyber-Skin, Plasma Energy Fields, Reality Shields",
+        superpowerLevel: "SUPREME - All 10 ultimate powers activated",
+        hypeLevel: "MAXIMUM HYPE - Most amazing NFT ever created",
+        background: "Epic DeSci megastructure with quantum computers, energy storms, reality portals",
       },
     });
   } catch (error: any) {
