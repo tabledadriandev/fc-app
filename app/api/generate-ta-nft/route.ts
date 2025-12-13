@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
     // Build sophisticated, personalized prompt for hyper-hype anime character design
     const stylePrompt = `Generate for me a hyper hype NFT of an anime/illustration for a character from DeSci world super evolved with extreme cyberpunk aesthetics. ${castContext}Character Design: Create an incredibly powerful, hyper-evolved DeSci character with extreme cyberpunk fusion aesthetics. This character has mastered the highest levels of scientific sorcery and technological mastery. Style: extreme anime/illustration art, cyberpunk aesthetic with DeSci elements, ultra-detailed and non-realistic.
 
-CRITICAL 1:1 FACE PRESERVATION: This MUST be a 1:1 EXACT transformation of the original face. Keep the IDENTICAL face, head shape, facial features, expression, head position, eye shape, nose structure, mouth shape, jawline, skin tone, hair style, and ALL facial characteristics. The transformation should only add cyberpunk/DeSci elements to the SAME face - NOT create a new character. SAME CLOTHES, SAME COLORS, SAME FACIAL STRUCTURE - 99% face preservation required. DO NOT change the face structure, facial features, or head shape. ONLY add cyberpunk elements to the existing face.
+ABSOLUTE CHARACTER PRESERVATION: This MUST be a transformation of the EXACT ORIGINAL CHARACTER from the profile picture. Keep the IDENTICAL face, head shape, facial features, expression, head position, eye shape, nose structure, mouth shape, jawline, skin tone, hair style, body structure, and ALL characteristics of the original character. EVEN IF THE ORIGINAL IS A MONSTER, maintain the exact same monster features. The transformation should only add cyberpunk/DeSci elements to the EXISTING CHARACTER - DO NOT CREATE A NEW CHARACTER. SAME FACE, SAME HEAD, SAME BODY, SAME CHARACTER DESIGN - 100% character preservation required. The AI must transform this exact character with cyberpunk elements while keeping everything else identical.
 
 Character Transformation: Transform into a hyper-hype, super-evolved DeSci master with incredible superpowers and abilities. Add cyber-augmented DeSci attire that reflects their original clothes but enhanced with futuristic elements, neural implants, holographic displays, energy conduits, plasma reactors, quantum processors, and advanced scientific equipment integrated into their clothing. Include extreme cyberpunk visual effects, energy auras, data streams, plasma fields, quantum distortions, reality ripples, and spectacular power manifestations. The character should have multiple incredible superpowers:
 - Quantum Energy Manipulation
@@ -274,12 +274,12 @@ Visual Style: Ultra high resolution, NFT ready, professional anime art, dramatic
               input: {
                 image: imageDataUrl,
                 prompt: promptText,
-                strength: 0.4, // Much lower strength to preserve more of original face/head
+                strength: 0.25, // Very low strength to preserve almost everything from original
                 num_outputs: 1,
-                guidance_scale: 6.0, // Lower guidance for more faithful face preservation
-                num_inference_steps: 50, // More steps for better quality
-                face_strength: 0.98, // Extremely high face strength to preserve exact facial features
-                controlnet_conditioning_scale: 0.9, // Control how much the original image influences the result
+                guidance_scale: 5.5, // Very low guidance for maximum face preservation
+                num_inference_steps: 60, // Maximum steps for best quality
+                face_strength: 0.99, // Maximum face strength for exact preservation
+                controlnet_conditioning_scale: 0.95, // Maximum influence from original image
               },
             }
           );
@@ -325,10 +325,10 @@ Visual Style: Ultra high resolution, NFT ready, professional anime art, dramatic
                   input: {
                     image: imageDataUrl,
                     prompt: promptText,
-                    strength: 0.35, // Much lower strength to preserve more of original face/head
+                    strength: 0.2, // Very low strength for maximum preservation
                     num_outputs: 1,
-                    guidance_scale: 6.0, // Lower guidance for more faithful face preservation
-                    num_inference_steps: 50,
+                    guidance_scale: 5.0, // Very low guidance for maximum preservation
+                    num_inference_steps: 60,
                   },
                 }
               );
@@ -351,7 +351,7 @@ Visual Style: Ultra high resolution, NFT ready, professional anime art, dramatic
                     input: {
                       image: imageDataUrl,
                       prompt: promptText,
-                      strength: 0.5, // Very low strength to preserve original face/head
+                      strength: 0.15, // Extremely low strength for maximum face preservation
                       num_outputs: 1,
                     },
                   }
