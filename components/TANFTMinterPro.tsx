@@ -31,6 +31,7 @@ export default function TANFTMinterPro() {
 
     if (!pfpUrl || !username) {
       console.error('Missing required parameters for NFT generation');
+      setError('Missing required parameters for NFT generation');
       return;
     }
 
@@ -39,7 +40,7 @@ export default function TANFTMinterPro() {
     setStep("generate");
     setGenerationProgress(0);
     
-    // Fun dev phrases for progress
+    // Fun dev phrases for progress - ALWAYS SHOW THESE!
     const phrases = [
       "Initializing quantum NFT generator...",
       "Downloading your PFP from the blockchain...",
@@ -63,7 +64,7 @@ export default function TANFTMinterPro() {
       }
     };
     
-    // Start progress updates
+    // Start progress updates IMMEDIATELY
     updateProgress();
     const progressInterval = setInterval(() => {
       if (currentPhraseIndex < phrases.length) {
@@ -74,30 +75,49 @@ export default function TANFTMinterPro() {
     }, 2000); // Update every 2 seconds
     
     try {
+      // Validate data before sending
+      const requestData = {
+        pfpUrl: String(pfpUrl || ''),
+        username: String(username || ''),
+        casts: Array.isArray(casts) ? casts.slice(0, 5) : [],
+        taBalance: 0,
+      };
+
+      console.log('Sending NFT generation request:', requestData);
+      
       const res = await fetch("/api/generate-ta-nft", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pfpUrl,
-          username,
-          casts: casts.slice(0, 5), // Send up to 5 recent casts
-          taBalance: 0, // Will be checked during mint if needed
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(requestData),
       });
 
-      const data = await res.json();
+      console.log('NFT generation response status:', res.status);
+
+      // Handle non-JSON responses
+      let data;
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const textResponse = await res.text();
+        console.error('Non-JSON response:', textResponse);
+        throw new Error('Server returned non-JSON response');
+      }
 
       clearInterval(progressInterval);
       setGenerationProgress(100);
       setCurrentPhrase("Generation complete! 🎨");
 
       if (!res.ok) {
-        const errorMsg = data.details || data.message || data.error || "NFT generation failed";
+        const errorMsg = data?.details || data?.message || data?.error || `NFT generation failed with status ${res.status}`;
         console.error('NFT generation API error:', { status: res.status, error: data });
         throw new Error(errorMsg);
       }
 
-      if (!data.nftImage) {
+      if (!data?.nftImage) {
         throw new Error("NFT generation returned no image");
       }
 
@@ -106,13 +126,25 @@ export default function TANFTMinterPro() {
     } catch (err) {
       clearInterval(progressInterval);
       console.error('Error generating NFT:', err);
+      
+      // Show a completion message even on error so user knows it finished
+      setGenerationProgress(100);
+      setCurrentPhrase("Generation attempt complete! 🎨");
+      
       const errorMessage = err instanceof Error ? err.message : 'NFT generation failed';
       setError(errorMessage);
-      setStep("connect");
+      
+      // Don't immediately reset step - let user see the completion message
+      setTimeout(() => {
+        setStep("connect");
+      }, 3000); // Wait 3 seconds before resetting
     } finally {
       setLoading(false);
-      setGenerationProgress(0);
-      setCurrentPhrase("");
+      // Don't immediately reset progress - let it complete first
+      setTimeout(() => {
+        setGenerationProgress(0);
+        setCurrentPhrase("");
+      }, 5000); // Wait 5 seconds before clearing
     }
   }, []);
 

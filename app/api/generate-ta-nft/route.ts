@@ -8,7 +8,22 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { pfpUrl, username, taBalance, casts } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      return NextResponse.json(
+        {
+          error: "Invalid JSON in request body",
+          details: "Please check your request format",
+          message: "Request body contains invalid JSON"
+        },
+        { status: 400 }
+      );
+    }
+
+    const { pfpUrl, username, taBalance, casts } = requestBody;
 
     console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount: casts?.length || 0 });
 
