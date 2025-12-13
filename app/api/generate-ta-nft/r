@@ -3,17 +3,17 @@ import Replicate from "replicate";
 
 export const dynamic = 'force-dynamic';
 
-// FIXED NFT Generation API with 1:1 Character Preservation
-// Optimized for pixel-perfect characteristic preservation
+// Using Pollinations.ai with Flux model - FREE and BEST QUALITY for NFTs
+// Flux is currently the state-of-the-art free AI model for high-quality image generation
 
 export async function POST(req: NextRequest) {
   let requestBody;
   
   try {
-    // Parse JSON with robust error handling
+    // Try to parse JSON with better error handling
     requestBody = await req.json();
   } catch (parseError) {
-    console.error('JSON parsing error:', parseError);
+    console.error('JSON parsing error in API route:', parseError);
     return NextResponse.json(
       {
         error: "Invalid JSON in request body",
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   try {
     const { pfpUrl, username, taBalance, casts } = requestBody;
 
-console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount: casts?.length || 0 });
+    console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount: casts?.length || 0 });
 
     if (!username) {
       return NextResponse.json(
@@ -35,9 +35,6 @@ console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount:
         { status: 400 }
       );
     }
-
-    // CRITICAL FIX: Declare nftImageUrl variable to prevent ReferenceError
-    let nftImageUrl: string = '';
 
     // Advanced cast analysis for personalized character design
     let castContext = "";
@@ -214,10 +211,29 @@ console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount:
 
     const nftTraits = generateTraits();
 
-    // OPTIMIZED: 1:1 Character Preservation with Focused Prompts
-    const characterPreservationPrompt = `Preserve exact face, hair, body, and clothing. Same person in cyberpunk DeSci laboratory setting. High quality anime art, 2048x2048 resolution.`;
+    // FIXED: 1:1 CHARACTER PRESERVATION PROMPTS
+    const characterPreservationPrompt = `CRITICAL: PRESERVE THE ORIGINAL PERSON 100%
 
-    const facePreservationPrompt = `Keep same face, same character, same person. Change only background to cyberpunk DeSci setting with tech elements. Preserve all original features exactly.`;
+🎯 ABSOLUTE CHARACTER PRESERVATION:
+- KEEP EXACTLY: Same face, same hair, same skin tone, same facial features
+- PRESERVE: Same body type, same clothing style, same colors
+- MAINTAIN: Same character identity and appearance
+- NO CHANGES: Do not modify the person's face, hair, body, or clothing
+
+🌟 ONLY CHANGE THE THEME:
+- BACKGROUND: Change to cyberpunk DeSci laboratory/megastructure
+- ADD GADGETS: Add cyberpunk DeSci tech accessories and enhancements  
+- ATMOSPHERE: Change lighting and environment to cyberpunk DeSci style
+- KEEP THE PERSON: Same individual, just in a different setting
+
+🚫 ABSOLUTE PROHIBITIONS:
+- NO face changes
+- NO hair modifications  
+- NO body alterations
+- NO clothing changes
+- NO character transformation
+
+✅ MANDATORY OUTPUT: Same person in cyberpunk DeSci setting`;
 
     // Download and process image with maximum error handling
     const downloadAndProcessImage = async (imageUrl: string): Promise<string> => {
@@ -278,132 +294,135 @@ console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount:
       }
     };
 
-    // OPTIMIZED: 1:1 Character Preservation with Robust Fallback System
-    const generateWithCharacterPreservation = async (imageUrl: string): Promise<string> => {
-      console.log('Starting optimized character preservation generation');
-      
-      // Download and validate the original image
-      let originalImageData: string;
-      try {
-        originalImageData = await downloadAndProcessImage(imageUrl);
-        console.log('Original image downloaded successfully');
-      } catch (error) {
-        console.error('Failed to download original image:', error);
-        throw new Error('Could not process original profile picture');
-      }
-
-      // Approach 1: Text-to-image with face preservation emphasis
-      const approach1 = async () => {
-        console.log('Approach 1: Enhanced text-to-image with face preservation');
-        
-        const prompt = `Same person from profile picture in cyberpunk DeSci laboratory. Preserve exact face, hair, body, and clothing. Add cyberpunk tech background and atmosphere. High quality anime art, 2048x2048.`;
-        
-        const encodedPrompt = encodeURIComponent(prompt);
-        const seed = Math.floor(Math.random() * 1000000);
-        
-        const response = await fetch(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=2048&height=2048&model=flux&nologo=true&enhance=true&seed=${seed}`);
-        
-        if (response.ok) {
-          const generatedImageUrl = response.url;
-          if (generatedImageUrl && generatedImageUrl.startsWith('http')) {
-            return generatedImageUrl;
-          }
-        }
-        throw new Error('Enhanced text-to-image failed');
-      };
-
-      // Approach 2: Try with different model parameters
-      const approach2 = async () => {
-        console.log('Approach 2: Alternative generation parameters');
-        
-        const prompt = `Face preservation: Same person, same character, same appearance. Cyberpunk DeSci setting with tech elements. Maintain exact facial features and body type.`;
-        
-        const encodedPrompt = encodeURIComponent(prompt);
-        const seed = Math.floor(Math.random() * 1000000);
-        
-        // Try with different Pollinations.ai settings
-        const response = await fetch(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=false&seed=${seed}`);
-        
-        if (response.ok) {
-          const generatedImageUrl = response.url;
-          if (generatedImageUrl && generatedImageUrl.startsWith('http')) {
-            return generatedImageUrl;
-          }
-        }
-        throw new Error('Alternative parameters failed');
-      };
-
-      // Approach 3: Replicate fallback (if available)
-      const approach3 = async () => {
-        if (!process.env.REPLICATE_API_TOKEN) {
-          throw new Error('Replicate not available');
-        }
-        
-        console.log('Approach 3: Replicate image-to-image');
-        
-        try {
-          const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+    // IMPROVED: 1:1 CHARACTER PRESERVATION with multiple fallback approaches
+    const generateWithCharacterPreservation = async (imageUrl: string, promptText: string): Promise<string> => {
+      const approaches = [
+        // Approach 1: Pollinations.ai with image-to-image (BEST for character preservation)
+        async () => {
+          const processedImage = await downloadAndProcessImage(imageUrl);
+          const encodedPrompt = encodeURIComponent(promptText);
+          const seed = Math.floor(Math.random() * 1000000);
           
-          const output = await replicate.run("stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", {
-            input: {
-              image: originalImageData,
-              prompt: "Same person in cyberpunk DeSci laboratory, preserve exact face and character, add tech background",
-              strength: 0.2, // Minimal transformation for better preservation
-              num_outputs: 1,
-              guidance_scale: 8.0,
-              num_inference_steps: 30,
+          console.log('Using Pollinations.ai with 1:1 character preservation');
+          
+          // Use Pollinations.ai with image parameter for better character preservation
+          const response = await fetch(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=2048&height=2048&model=flux&nologo=true&enhance=true&seed=${seed}&image=${encodeURIComponent(processedImage)}`);
+          
+          if (response.ok) {
+            const generatedImageUrl = response.url;
+            if (generatedImageUrl && generatedImageUrl.startsWith('http')) {
+              return generatedImageUrl;
             }
-          });
+          }
+          throw new Error('Pollinations.ai image-to-image failed');
+        },
+
+        // Approach 2: Pollinations.ai text-to-image with enhanced character description
+        async () => {
+          console.log('Using Pollinations.ai text-to-image with character description');
           
-          if (output && Array.isArray(output) && output[0]) {
-            return output[0] as string;
-          }
-        } catch (replicateErr) {
-          console.log('Replicate failed:', replicateErr);
-          throw replicateErr;
-        }
-        
-        throw new Error('Replicate approach failed');
-      };
+          // Enhanced prompt that focuses on preserving character while changing theme
+          const enhancedPrompt = `${promptText} 
 
-      // Approach 4: Simple fallback with maximum simplicity
-      const approach4 = async () => {
-        console.log('Approach 4: Simple fallback generation');
-        
-        const prompt = `Same person, cyberpunk setting, high quality anime art`;
-        
-        const encodedPrompt = encodeURIComponent(prompt);
-        const seed = Math.floor(Math.random() * 1000000);
-        
-        const response = await fetch(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`);
-        
-        if (response.ok) {
-          const generatedImageUrl = response.url;
-          if (generatedImageUrl && generatedImageUrl.startsWith('http')) {
-            return generatedImageUrl;
-          }
-        }
-        throw new Error('Simple fallback failed');
-      };
+CREATE: Same person from reference image in cyberpunk DeSci setting
+PRESERVE: Exact face, hair, skin tone, body type, clothing, colors
+CHANGE: Only background to cyberpunk DeSci laboratory/megastructure
+ADD: Cyberpunk DeSci tech gadgets and atmospheric lighting
+KEEP: Same individual character identity
 
-      // Try each approach with better error handling
-      const approaches = [approach1, approach2, approach3, approach4];
-      
+Style: High quality 2048x2048 anime art with cyberpunk DeSci theme`;
+          
+          const encodedPrompt = encodeURIComponent(enhancedPrompt);
+          const seed = Math.floor(Math.random() * 1000000);
+          
+          const response = await fetch(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=2048&height=2048&model=flux&nologo=true&enhance=true&seed=${seed}`);
+          
+          if (response.ok) {
+            const generatedImageUrl = response.url;
+            if (generatedImageUrl && generatedImageUrl.startsWith('http')) {
+              return generatedImageUrl;
+            }
+          }
+          throw new Error('Pollinations.ai text-to-image failed');
+        },
+
+        // Approach 3: Try Replicate if available (for face preservation)
+        async () => {
+          if (!process.env.REPLICATE_API_TOKEN) throw new Error('No Replicate token');
+          
+          const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+          const processedImage = await downloadAndProcessImage(imageUrl);
+          
+          console.log('Using Replicate for face preservation');
+          
+          // Try a different Replicate model that might work
+          try {
+            const output = await replicate.run("stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", {
+              input: {
+                image: processedImage,
+                prompt: `${promptText} Same person in cyberpunk DeSci setting, preserve exact face and character, change only background and add tech elements`,
+                strength: 0.3, // Lower transformation for better preservation
+                num_outputs: 1,
+                guidance_scale: 7.5,
+                num_inference_steps: 50,
+              }
+            });
+            
+            if (output && Array.isArray(output) && output[0]) {
+              return output[0] as string;
+            }
+          } catch (replicateErr) {
+            console.log('Replicate SDXL failed:', replicateErr);
+            throw replicateErr;
+          }
+          
+          throw new Error('Replicate failed');
+        },
+
+        // Approach 4: Final fallback with maximum preservation emphasis
+        async () => {
+          console.log('Using final fallback with maximum character preservation');
+          
+          const fallbackPrompt = `EXACT CHARACTER PRESERVATION: Same person from reference image
+
+PRESERVE 100%: Same face, hair, skin, body, clothing, colors
+CHANGE ONLY: Background to cyberpunk DeSci laboratory
+ADD: Cyberpunk DeSci tech gadgets and atmospheric lighting  
+KEEP: Same individual character identity
+
+Generate: Same person in cyberpunk DeSci setting, high quality 2048x2048 anime art`;
+          
+          const encodedPrompt = encodeURIComponent(fallbackPrompt);
+          const seed = Math.floor(Math.random() * 1000000);
+          
+          const response = await fetch(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=2048&height=2048&model=flux&nologo=true&enhance=true&seed=${seed}`);
+          
+          if (response.ok) {
+            const generatedImageUrl = response.url;
+            if (generatedImageUrl && generatedImageUrl.startsWith('http')) {
+              return generatedImageUrl;
+            }
+          }
+          throw new Error('Final fallback failed');
+        }
+      ];
+
+      // Try each approach in order
       for (let i = 0; i < approaches.length; i++) {
         try {
-          console.log(`Trying character preservation approach ${i + 1}/${approaches.length}`);
+          console.log(`Trying approach ${i + 1}/${approaches.length} for character preservation`);
           const result = await approaches[i]();
           if (result && result.startsWith('http')) {
-            console.log(`✅ Approach ${i + 1} succeeded!`);
+            console.log(`Approach ${i + 1} succeeded with character preservation!`);
             return result;
           }
         } catch (error) {
-          console.log(`❌ Approach ${i + 1} failed:`, error);
+          console.log(`Approach ${i + 1} failed:`, error);
           continue;
         }
       }
 
-      throw new Error('All character preservation approaches exhausted');
+      throw new Error('All character preservation approaches failed');
     };
 
     console.log('Enhanced cast analysis:', {
@@ -421,12 +440,12 @@ console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount:
       const pfpUrlWithCache = `${cleanPfpUrl}?t=${Date.now()}&r=${Math.random()}`;
       
       try {
-nftImageUrl = await generateWithCharacterPreservation(pfpUrlWithCache);
+        nftImageUrl = await generateWithCharacterPreservation(pfpUrlWithCache, characterPreservationPrompt);
         console.log('SUCCESS: Generated with 1:1 CHARACTER PRESERVATION');
       } catch (error) {
         console.log('All approaches failed, trying final fallback');
         // Final fallback - text only with maximum enhancement
-        const fallbackPrompt = `Same person in cyberpunk DeSci setting, preserve exact character and features, change only background and theme. High quality 2048x2048 resolution.`;
+        const fallbackPrompt = `${characterPreservationPrompt} FINAL FALLBACK: Same person in cyberpunk DeSci setting, preserve exact character, change only background and theme. High quality 2048x2048 resolution.`;
         const encodedPrompt = encodeURIComponent(fallbackPrompt);
         const seed = Math.floor(Math.random() * 1000000);
         
@@ -445,9 +464,9 @@ nftImageUrl = await generateWithCharacterPreservation(pfpUrlWithCache);
         }
       }
     } else {
-console.log('Generating from scratch with character preservation emphasis');
+      console.log('Generating from scratch with character preservation emphasis');
       try {
-        const encodedPrompt = encodeURIComponent(facePreservationPrompt);
+        const encodedPrompt = encodeURIComponent(characterPreservationPrompt);
         const seed = Math.floor(Math.random() * 1000000);
         const response = await fetch(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=2048&height=2048&model=flux&nologo=true&enhance=true&seed=${seed}`);
         
@@ -530,4 +549,3 @@ console.log('Generating from scratch with character preservation emphasis');
       { status: 500 }
     );
   }
-}

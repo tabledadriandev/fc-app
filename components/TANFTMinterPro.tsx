@@ -40,7 +40,10 @@ export default function TANFTMinterPro() {
     setLoading(true);
     setError("");
     setStep("generate");
-    setGenerationProgress(0);
+    
+    // Force immediate progress bar display with guaranteed update
+    setGenerationProgress(1);
+    setCurrentPhrase("Starting NFT generation...");
     
     // Fun dev phrases for progress - GUARANTEED TO SHOW!
     const phrases = [
@@ -60,16 +63,23 @@ export default function TANFTMinterPro() {
     let currentPhraseIndex = 0;
     let progressInterval: NodeJS.Timeout | null = null;
     
+    // Force immediate first update with microtask to ensure it shows
+    Promise.resolve().then(() => {
+      setCurrentPhrase(phrases[0]);
+      setGenerationProgress(9);
+      currentPhraseIndex = 1;
+    });
+    
     const updateProgress = () => {
       if (currentPhraseIndex < phrases.length) {
+        const progress = Math.min((currentPhraseIndex + 1) * (100 / phrases.length), 95);
         setCurrentPhrase(phrases[currentPhraseIndex]);
-        setGenerationProgress((currentPhraseIndex + 1) * (100 / phrases.length));
+        setGenerationProgress(progress);
         currentPhraseIndex++;
       }
     };
     
     // Start progress updates IMMEDIATELY - THIS WILL ALWAYS SHOW!
-    updateProgress();
     progressInterval = setInterval(() => {
       if (currentPhraseIndex < phrases.length) {
         updateProgress();
