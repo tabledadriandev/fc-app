@@ -258,7 +258,7 @@ export function TANFTMinter() {
               >
                 {loading
                   ? "Processing Mint..."
-                  : "Mint NFT (0.003 ETH to Liquidity Pool)"}
+                  : "Mint NFT (0.001 ETH to TANFT Contract)"}
               </button>
             </div>
           )}
@@ -272,7 +272,7 @@ export function TANFTMinter() {
               <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg text-center">
                 <p className="font-bold mb-2">TA NFT Minted</p>
                 <p className="text-sm mb-4">{username}</p>
-                <p className="text-xs mb-2">0.003 ETH sent to $TA Liquidity Pool</p>
+                <p className="text-xs mb-2">0.001 ETH sent to TANFT Contract</p>
                 <p className="text-xs text-green-600 font-mono">
                   TX: {txHash.substring(0, 20)}...
                 </p>

@@ -100,14 +100,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Build sophisticated, personalized prompt for masterminded character design
-    const stylePrompt = `Transform this portrait into an AWESOME, MASTERMINDED Table d'Adrian member in a DeSci universe. ${castContext}Character Design: Create a powerful, intelligent, and visually striking character that reflects their unique identity, interests, and personality. Style: premium professional anime art, Studio Ghibli meets cyberpunk aesthetic, sophisticated scientific researcher aesthetic. 
+    // Build sophisticated, personalized prompt for hyper-hype anime character design
+    const stylePrompt = `Generate for me a hyper hype NFT of a anime/illustration for a character from DeSci world super evolved in relation with Cyberpunk went to extreme in Naruto World. ${castContext}Character Design: Create an incredibly powerful, hyper-evolved DeSci character with extreme cyberpunk-Naruto fusion aesthetics. This character has mastered the highest levels of scientific sorcery and technological ninjutsu. Style: extreme anime/illustration art, cyberpunk meets Naruto aesthetic with DeSci elements, ultra-detailed and non-realistic.
 
-CRITICAL FACE PRESERVATION: Keep the EXACT same face, head shape, facial features, expression, and head position from the original image. The face, head, eyes, nose, mouth, and overall facial structure must remain IDENTICAL to the original.
+CRITICAL FACE PRESERVATION: Keep the EXACT same face, head shape, facial features, expression, and head position from the original image. The face, head, eyes, nose, mouth, and overall facial structure must remain IDENTICAL to the original. SAME CLOTHES, SAME COLORS, 90% 1/1 match.
 
-Character Transformation: Add premium, futuristic lab attire (white coat with advanced scientific equipment, holographic displays, neural interfaces), sophisticated DeSci researcher clothing that reflects their personality and interests, and a stunning futuristic DeSci research station background with cutting-edge scientific laboratory elements, holographic data visualizations, and advanced technology. The character should look like a brilliant mastermind researcher - confident, intelligent, and powerful.
+Character Transformation: Transform into a hyper-hype, super-evolved DeSci ninja-scientist with incredible superpowers. Add cyber-augmented DeSci attire that reflects their original clothes but enhanced with futuristic elements, neural implants, holographic displays, energy conduits, and advanced scientific equipment integrated into their clothing. Include extreme cyberpunk visual effects, energy auras, data streams, and Naruto-style chakra/superpower manifestations. The character should have multiple superpowers: energy manipulation, technological telepathy, quantum data access, and reality-hacking abilities. Background: extreme futuristic DeSci laboratory with floating holographic data, energy fields, and cyberpunk-Naruto fusion elements.
 
-Visual Style: High resolution, NFT ready, professional portrait, cinematic lighting, detailed textures, vibrant colors, epic composition. The character should embody the essence of a DeSci pioneer and innovator.`;
+Visual Style: Ultra high resolution, NFT ready, professional anime art, dramatic cinematic lighting, extremely detailed textures, vibrant neon colors, epic composition with multiple power effects. Non-realistic, stylized, hyper-detailed, extreme visual effects. The character embodies the ultimate fusion of DeSci pioneer, cyberpunk hacker, and Naruto-style ninja.`;
 
     let nftImageUrl: string;
 
