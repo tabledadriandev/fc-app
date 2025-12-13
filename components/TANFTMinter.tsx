@@ -20,6 +20,8 @@ export function TANFTMinter() {
   const [taBalance, setTaBalance] = useState(0);
   const [nftImageUrl, setNftImageUrl] = useState<string | null>(null);
   const [txHash, setTxHash] = useState("");
+  const [showCastPopup, setShowCastPopup] = useState(false);
+  const [nftMetadata, setNftMetadata] = useState<any>(null);
 
   // Step 1: Check user DNA + balance
   const checkUser = async () => {
@@ -76,6 +78,7 @@ export function TANFTMinter() {
       if (!res.ok) throw new Error(data.error);
 
       setNftImageUrl(data.nftImage);
+      setNftMetadata(data.nftMetadata);
       setStep("preview");
     } catch (err) {
       setError((err as Error).message);
@@ -135,12 +138,34 @@ export function TANFTMinter() {
         }),
       });
 
-      setStep("success");
+      setShowCastPopup(true);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle Farcaster casting
+  const handleCast = () => {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fc-app-sandy.vercel.app';
+    const castMessage = `🚀 Just minted my hyper-hype TA NFT from @${username}!
+
+🌟 This incredible anime-style DeSci character has insane superpowers:
+⚡ Quantum Energy Manipulation
+🧠 Reality Data Hacking
+🌌 Temporal Consciousness Access
+💫 Dimensional Reality Surfing
+
+Part of the @tabledadrian DeSci Collection - where science meets cyberpunk!
+
+Mint yours: ${appUrl}/ta-nft
+
+$tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
+
+    // Create Farcaster cast URL
+    const castUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(castMessage)}`;
+    window.open(castUrl, '_blank');
   };
 
   return (
@@ -269,7 +294,7 @@ export function TANFTMinter() {
               <h2 className="text-2xl font-bold mb-4 text-green-600">
                 Successfully Minted!
               </h2>
-              <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg text-center">
+              <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg text-center mb-6">
                 <p className="font-bold mb-2">TA NFT Minted</p>
                 <p className="text-sm mb-4">{username}</p>
                 <p className="text-xs mb-2">0.001 ETH sent to TANFT Contract</p>
@@ -277,6 +302,62 @@ export function TANFTMinter() {
                   TX: {txHash.substring(0, 20)}...
                 </p>
               </div>
+
+              {!showCastPopup && (
+                <button
+                  onClick={() => setShowCastPopup(true)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg"
+                >
+                  Share on Farcaster 🚀
+                </button>
+              )}
+
+              {showCastPopup && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <h3 className="text-lg font-bold mb-4 text-blue-800">
+                    Share Your Epic NFT! 🌟
+                  </h3>
+                  <div className="bg-white rounded-lg p-4 mb-4 border">
+                    <p className="text-sm text-gray-700 mb-4">
+                      Share your hyper-hype TA NFT on Farcaster and spread the word about the DeSci revolution!
+                    </p>
+                    
+                    {nftMetadata?.traits && (
+                      <div className="mb-4">
+                        <h4 className="font-bold text-sm mb-2">Your NFT Traits:</h4>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {nftMetadata.traits.slice(0, 6).map((trait: any, index: number) => (
+                            <div key={index} className="bg-gray-100 rounded px-2 py-1">
+                              <span className="font-medium">{trait.trait_type}:</span> {trait.value}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
+                      <p className="text-xs text-yellow-800">
+                        <strong>SEO Tip:</strong> Include @tabledadrian and $tabledadrian in your cast to reach the community!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleCast}
+                      className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg"
+                    >
+                      Cast on Farcaster 🚀
+                    </button>
+                    <button
+                      onClick={() => setShowCastPopup(false)}
+                      className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-2 px-4 rounded-lg"
+                    >
+                      Maybe Later
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -100,14 +100,82 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Generate personalized traits based on user data
+    const generateTraits = () => {
+      const traits = [];
+      const rarities = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"];
+      
+      // Core personality traits based on cast analysis
+      if (userPersonality.includes("technical")) {
+        traits.push({ trait_type: "Specialty", value: "Quantum Technomancer", rarity: "Epic" });
+        traits.push({ trait_type: "Primary Power", value: "Reality Data Hacking", rarity: "Legendary" });
+      }
+      if (userPersonality.includes("philosophical")) {
+        traits.push({ trait_type: "Specialty", value: "Consciousness Architect", rarity: "Rare" });
+        traits.push({ trait_type: "Primary Power", value: "Temporal Consciousness Access", rarity: "Epic" });
+      }
+      if (userPersonality.includes("creative")) {
+        traits.push({ trait_type: "Specialty", value: "Reality Designer", rarity: "Uncommon" });
+        traits.push({ trait_type: "Primary Power", value: "Dimensional Reality Surfing", rarity: "Rare" });
+      }
+      
+      // Interest-based traits
+      if (userInterests.includes("crypto")) {
+        traits.push({ trait_type: "Tech Affinity", value: "Blockchain Master", rarity: "Uncommon" });
+        traits.push({ trait_type: "Secondary Power", value: "Quantum Entanglement Communication", rarity: "Rare" });
+      }
+      if (userInterests.includes("science")) {
+        traits.push({ trait_type: "Scientific Focus", value: "Quantum Research Pioneer", rarity: "Epic" });
+        traits.push({ trait_type: "Equipment", value: "Plasma Energy Generator", rarity: "Rare" });
+      }
+      if (userInterests.includes("tech")) {
+        traits.push({ trait_type: "Tech Level", value: "Hyper-Advanced AI Integration", rarity: "Legendary" });
+        traits.push({ trait_type: "Secondary Power", value: "Technological Telepathy", rarity: "Epic" });
+      }
+      
+      // Voice/style based traits
+      if (userVoice.includes("detailed")) {
+        traits.push({ trait_type: "Analysis Style", value: "Deep Data Diver", rarity: "Uncommon" });
+      }
+      if (userVoice.includes("concise")) {
+        traits.push({ trait_type: "Communication", value: "Quantum Precision Speaker", rarity: "Rare" });
+      }
+      if (userVoice.includes("curious")) {
+        traits.push({ trait_type: "Mindset", value: "Universal Data Stream Seeker", rarity: "Epic" });
+      }
+      
+      // Base DeSci traits for all users
+      traits.push({ trait_type: "Origin", value: "Table d'Adrian DeSci Collective", rarity: "Common" });
+      traits.push({ trait_type: "Evolution Level", value: "Hyper-Evolved", rarity: "Legendary" });
+      traits.push({ trait_type: "Reality Status", value: "Matrix Controller", rarity: "Mythic" });
+      traits.push({ trait_type: "Energy Type", value: "Quantum Plasma", rarity: "Epic" });
+      traits.push({ trait_type: "Cyber Enhancement", value: "Neural Quantum Interface", rarity: "Rare" });
+      
+      return traits;
+    };
+
+    const nftTraits = generateTraits();
+
     // Build sophisticated, personalized prompt for hyper-hype anime character design
-    const stylePrompt = `Generate for me a hyper hype NFT of a anime/illustration for a character from DeSci world super evolved in relation with Cyberpunk went to extreme in Naruto World. ${castContext}Character Design: Create an incredibly powerful, hyper-evolved DeSci character with extreme cyberpunk-Naruto fusion aesthetics. This character has mastered the highest levels of scientific sorcery and technological ninjutsu. Style: extreme anime/illustration art, cyberpunk meets Naruto aesthetic with DeSci elements, ultra-detailed and non-realistic.
+    const stylePrompt = `Generate for me a hyper hype NFT of an anime/illustration for a character from DeSci world super evolved with extreme cyberpunk aesthetics. ${castContext}Character Design: Create an incredibly powerful, hyper-evolved DeSci character with extreme cyberpunk fusion aesthetics. This character has mastered the highest levels of scientific sorcery and technological mastery. Style: extreme anime/illustration art, cyberpunk aesthetic with DeSci elements, ultra-detailed and non-realistic.
 
 CRITICAL FACE PRESERVATION: Keep the EXACT same face, head shape, facial features, expression, and head position from the original image. The face, head, eyes, nose, mouth, and overall facial structure must remain IDENTICAL to the original. SAME CLOTHES, SAME COLORS, 90% 1/1 match.
 
-Character Transformation: Transform into a hyper-hype, super-evolved DeSci ninja-scientist with incredible superpowers. Add cyber-augmented DeSci attire that reflects their original clothes but enhanced with futuristic elements, neural implants, holographic displays, energy conduits, and advanced scientific equipment integrated into their clothing. Include extreme cyberpunk visual effects, energy auras, data streams, and Naruto-style chakra/superpower manifestations. The character should have multiple superpowers: energy manipulation, technological telepathy, quantum data access, and reality-hacking abilities. Background: extreme futuristic DeSci laboratory with floating holographic data, energy fields, and cyberpunk-Naruto fusion elements.
+Character Transformation: Transform into a hyper-hype, super-evolved DeSci master with incredible superpowers and abilities. Add cyber-augmented DeSci attire that reflects their original clothes but enhanced with futuristic elements, neural implants, holographic displays, energy conduits, plasma reactors, quantum processors, and advanced scientific equipment integrated into their clothing. Include extreme cyberpunk visual effects, energy auras, data streams, plasma fields, quantum distortions, reality ripples, and spectacular power manifestations. The character should have multiple incredible superpowers:
+- Quantum Energy Manipulation
+- Reality Data Hacking
+- Technological Telepathy
+- Temporal Consciousness Access
+- Dimensional Reality Surfing
+- Plasma Energy Generation
+- Quantum Entanglement Communication
+- Hyper-Advanced AI Integration
+- Reality Matrix Control
+- Universal Data Stream Access
 
-Visual Style: Ultra high resolution, NFT ready, professional anime art, dramatic cinematic lighting, extremely detailed textures, vibrant neon colors, epic composition with multiple power effects. Non-realistic, stylized, hyper-detailed, extreme visual effects. The character embodies the ultimate fusion of DeSci pioneer, cyberpunk hacker, and Naruto-style ninja.`;
+Background: extreme futuristic DeSci megastructure with floating holographic data, energy storms, quantum vortexes, plasma fields, and hyper-advanced cyberpunk fusion elements. Include floating platforms, energy bridges, quantum computers, and reality-shaping technology.
+
+Visual Style: Ultra high resolution, NFT ready, professional anime art, dramatic cinematic lighting, extremely detailed textures, vibrant neon colors, epic composition with multiple spectacular power effects, energy bursts, quantum distortions, and reality-warping visuals. Non-realistic, stylized, hyper-detailed, absolutely amazing visual effects. The character embodies the ultimate fusion of DeSci pioneer, cyberpunk overlord, and reality-bending master.`;
 
     let nftImageUrl: string;
 
@@ -415,10 +483,12 @@ Visual Style: Ultra high resolution, NFT ready, professional anime art, dramatic
       nftImage: nftImageUrl,
       nftMetadata: {
         name: `TA NFT: ${username}`,
-        description: "Table d'Adrian DeSci NFT",
+        description: "Table d'Adrian DeSci NFT - Hyper-Evolved Cyberpunk Character",
         image: nftImageUrl,
         artist: "Table d'Adrian",
         collection: "TA DeSci Collection",
+        traits: nftTraits,
+        attributes: nftTraits,
       },
     });
   } catch (error: any) {
