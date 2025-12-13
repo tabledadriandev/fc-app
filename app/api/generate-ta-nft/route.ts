@@ -194,6 +194,39 @@ export async function POST(req: NextRequest) {
 
     const nftTraits = generateTraits();
 
+    // Download and process image properly to avoid 400 errors
+    const downloadAndProcessImage = async (imageUrl: string): Promise<string> => {
+      try {
+        console.log('Downloading and processing image:', imageUrl);
+        
+        // Clean the URL
+        const cleanUrl = imageUrl.split('?')[0].split('&')[0];
+        
+        // Download the image with proper headers
+        const response = await fetch(cleanUrl, {
+          headers: {
+            'Accept': 'image/*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type') || 'image/jpeg';
+        const imageBuffer = await response.arrayBuffer();
+        const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+        
+        console.log('Image downloaded and processed successfully');
+        return `data:${contentType};base64,${imageBase64}`;
+      } catch (error) {
+        console.error('Image download failed:', error);
+        throw new Error(`Failed to process image: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+
     // EXTREMELY FORCEFUL PROMPT - NO EXCEPTIONS
     const stylePrompt = `EXTREMELY FORCEFUL INSTRUCTIONS - NO EXCEPTIONS:
 
@@ -229,27 +262,27 @@ MANDATORY COMPOSITION: Standing full body character from head to toe, exact faci
 
     let nftImageUrl: string;
 
-    // HIGH QUALITY generation with EXTREME FORCE settings
+    // HIGH QUALITY generation with PROPER IMAGE HANDLING
     const generateWithFlux = async (imageUrl: string, promptText: string): Promise<string> => {
       try {
-        const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
-        
         console.log('Generating EXTREME FORCE full body cyberpunk DeSci anime - EXACT profile match');
+        
+        // Download and process the image first
+        const processedImage = await downloadAndProcessImage(imageUrl);
         
         // Use EXTREME HIGH QUALITY settings
         const encodedPrompt = encodeURIComponent(promptText);
         const seed = Math.floor(Math.random() * 1000000);
         
-        // HIGHEST QUALITY settings with maximum resolution
-        let apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=2048&height=2048&model=flux&nologo=true&enhance=true&seed=${seed}&image=${encodeURIComponent(cleanImageUrl)}`;
-        
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          redirect: 'follow',
+        // For image-to-image with Flux, use the processed image data
+        const response = await fetch(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=2048&height=2048&model=flux&nologo=true&enhance=true&seed=${seed}`, {
+          method: 'POST',
           headers: {
-            'Accept': 'image/*',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({
+            image: processedImage,
+          }),
         });
         
         if (!response.ok) {
@@ -281,27 +314,15 @@ MANDATORY COMPOSITION: Standing full body character from head to toe, exact faci
 
         console.log('Using EXTREME MAXIMUM preservation for EXACT profile match');
         
-        const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
-        
-        const imageResponse = await fetch(cleanImageUrl, {
-          headers: { 'Accept': 'image/*', 'Cache-Control': 'no-cache' },
-        });
-
-        if (!imageResponse.ok) {
-          throw new Error(`Failed to download PFP: ${imageResponse.status}`);
-        }
-
-        const imageBlob = await imageResponse.blob();
-        const imageBuffer = await imageBlob.arrayBuffer();
-        const imageBase64 = Buffer.from(imageBuffer).toString('base64');
-        const imageDataUrl = `data:${imageBlob.type};base64,${imageBase64}`;
+        // Download and process the image first
+        const processedImage = await downloadAndProcessImage(imageUrl);
 
         const models = [
           {
             name: "IP-Adapter FaceID Plus (EXTREME FORCE)",
             config: {
               input: {
-                image: imageDataUrl,
+                image: processedImage,
                 prompt: `${promptText} ${characterPreservationPrompt}`,
                 strength: 0.01, // ULTRA LOW - almost no transformation
                 num_outputs: 1,
@@ -348,24 +369,7 @@ MANDATORY COMPOSITION: Standing full body character from head to toe, exact faci
           auth: process.env.REPLICATE_API_TOKEN || "",
         });
 
-        const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
-        
-        console.log('Downloading PFP for EXTREME FORCE full body generation');
-        const imageResponse = await fetch(cleanImageUrl, {
-          headers: {
-            'Accept': 'image/*',
-            'Cache-Control': 'no-cache',
-          },
-        });
-
-        if (!imageResponse.ok) {
-          throw new Error(`Failed to download PFP: ${imageResponse.status}`);
-        }
-
-        const imageBlob = await imageResponse.blob();
-        const imageBuffer = await imageBlob.arrayBuffer();
-        const imageBase64 = Buffer.from(imageBuffer).toString('base64');
-        const imageDataUrl = `data:${imageBlob.type};base64,${imageBase64}`;
+        console.log('Downloading and processing PFP for EXTREME FORCE full body generation');
 
         try {
           return await generateWithMaximumPreservation(imageUrl, promptText);
@@ -375,11 +379,14 @@ MANDATORY COMPOSITION: Standing full body character from head to toe, exact faci
 
         console.log('Using IP-Adapter FaceID Plus for EXTREME FORCE full body');
         
+        // Download and process the image first
+        const processedImage = await downloadAndProcessImage(imageUrl);
+        
         const output = await replicate.run(
           "lucataco/ip-adapter-faceid-plus" as `${string}/${string}`,
           {
             input: {
-              image: imageDataUrl,
+              image: processedImage,
               prompt: `${promptText} ${characterPreservationPrompt}`,
               strength: 0.01, // ULTRA LOW transformation
               num_outputs: 1,
@@ -406,12 +413,13 @@ MANDATORY COMPOSITION: Standing full body character from head to toe, exact faci
       }
     };
 
-    // EXTREME FORCE ALT TEXT ANALYSIS
+    // EXTREME FORCE ALT TEXT ANALYSIS with proper image processing
     const generateWithAltTextAnalysis = async (imageUrl: string, promptText: string): Promise<string> => {
       try {
         console.log('Using EXTREME FORCE ALT TEXT ANALYSIS for exact profile match');
         
-        const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
+        // Download and analyze the image
+        const processedImage = await downloadAndProcessImage(imageUrl);
         
         // Generate EXTREMELY detailed description for exact replication
         const altTextDescription = `EXTREME DETAILED CHARACTER DESCRIPTION for exact replication:
