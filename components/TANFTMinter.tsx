@@ -138,6 +138,7 @@ export function TANFTMinter() {
         }),
       });
 
+      setStep("success");
       setShowCastPopup(true);
     } catch (err) {
       setError((err as Error).message);
@@ -149,7 +150,8 @@ export function TANFTMinter() {
   // Handle Farcaster casting
   const handleCast = () => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fc-app-sandy.vercel.app';
-    const castMessage = `🚀 Just minted my hyper-hype TA NFT from @${username}!
+    const miniAppUrl = 'https://farcaster.xyz/miniapps/MTkL0SXrJvuW/tabledadrian';
+    const castMessage = `🚀 Just minted my hyper-hype TA NFT from @adrsteph.base.eth!
 
 🌟 This incredible anime-style DeSci character has insane superpowers:
 ⚡ Quantum Energy Manipulation
@@ -159,7 +161,7 @@ export function TANFTMinter() {
 
 Part of the @tabledadrian DeSci Collection - where science meets cyberpunk!
 
-Mint yours: ${appUrl}/ta-nft
+Mint yours: ${miniAppUrl}
 
 $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
 
@@ -322,14 +324,16 @@ $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
                       Share your hyper-hype TA NFT on Farcaster and spread the word about the DeSci revolution!
                     </p>
                     
-                    {nftMetadata?.traits && (
+                    {nftMetadata?.traits && nftMetadata.traits.length > 0 && (
                       <div className="mb-4">
                         <h4 className="font-bold text-sm mb-2">Your NFT Traits:</h4>
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           {nftMetadata.traits.slice(0, 6).map((trait: any, index: number) => (
-                            <div key={index} className="bg-gray-100 rounded px-2 py-1">
-                              <span className="font-medium">{trait.trait_type}:</span> {trait.value}
-                            </div>
+                            trait && trait.trait_type && trait.value ? (
+                              <div key={`trait-${index}`} className="bg-gray-100 rounded px-2 py-1">
+                                <span className="font-medium">{trait.trait_type}:</span> {trait.value}
+                              </div>
+                            ) : null
                           ))}
                         </div>
                       </div>
