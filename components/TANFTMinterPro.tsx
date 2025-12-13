@@ -24,6 +24,16 @@ export default function TANFTMinterPro() {
   const [currentPhrase, setCurrentPhrase] = useState<string>("");
 
   const generateNFT = useCallback(async (pfpUrl: string, username: string, casts: any[] = []) => {
+    if (loading) {
+      console.log('NFT generation already in progress, ignoring duplicate call');
+      return;
+    }
+
+    if (!pfpUrl || !username) {
+      console.error('Missing required parameters for NFT generation');
+      return;
+    }
+
     setLoading(true);
     setError("");
     setStep("generate");
@@ -106,7 +116,17 @@ export default function TANFTMinterPro() {
     }
   }, []);
 
-  const fetchUserData = useCallback(async (walletOrUsernameOrFid: string, isUsername = false) => {
+  const fetchUserData = useCallback(async (walletOrUsernameOrFid: string, isUsername = false, triggerNFTGeneration = true) => {
+    if (loading) {
+      console.log('User data fetch already in progress, ignoring duplicate call');
+      return;
+    }
+
+    if (!walletOrUsernameOrFid || typeof walletOrUsernameOrFid !== 'string') {
+      console.error('Invalid wallet/username/FID provided');
+      return;
+    }
+
     setLoading(true);
     setError("");
     setStep("fetch");
@@ -117,7 +137,7 @@ export default function TANFTMinterPro() {
       
       const apiUrl = isFid
         ? `/api/fetch-farcaster-user?fid=${walletOrUsernameOrFid}`
-        : isUsername 
+        : isUsername
         ? `/api/fetch-farcaster-user?username=${encodeURIComponent(walletOrUsernameOrFid)}`
         : `/api/fetch-farcaster-user?wallet=${walletOrUsernameOrFid}`;
       
@@ -152,18 +172,20 @@ export default function TANFTMinterPro() {
         }
       }
       
-      // Automatically generate NFT from PFP and casts
-      // Add cache busting to ensure we get the latest PFP
-      if (data.pfp_url) {
-        const pfpUrlWithCache = data.pfp_url.includes('?') 
-          ? `${data.pfp_url}&_t=${Date.now()}` 
+      // Automatically generate NFT from PFP and casts (only if requested)
+      if (triggerNFTGeneration && data.pfp_url) {
+        const pfpUrlWithCache = data.pfp_url.includes('?')
+          ? `${data.pfp_url}&_t=${Date.now()}`
           : `${data.pfp_url}?_t=${Date.now()}`;
         console.log('Generating NFT with PFP URL:', pfpUrlWithCache);
         await generateNFT(pfpUrlWithCache, data.username, castsData?.casts || []);
-      } else {
+      } else if (triggerNFTGeneration && !data.pfp_url) {
         setError('No profile picture found. Please ensure your Farcaster profile has a PFP.');
         setLoading(false);
         setStep("connect");
+      } else {
+        // Just set loading to false if not generating NFT
+        setLoading(false);
       }
     } catch (err) {
       console.error('Error fetching user data:', err);
@@ -210,9 +232,9 @@ export default function TANFTMinterPro() {
           if (context?.user?.fid && mounted) {
             const fid = context.user.fid;
             console.log('Got FID from Farcaster context:', fid);
-            // Fetch user data by FID (most reliable method)
-            if (!userData && mounted) {
-              await fetchUserData(fid.toString(), false);
+            // Fetch user data by FID (most reliable method) - NO AUTO NFT GENERATION
+            if (!userData) {
+              await fetchUserData(fid.toString(), false, false); // Don't trigger NFT generation automatically
             }
             return; // Success, exit early
           } else {
@@ -246,14 +268,14 @@ export default function TANFTMinterPro() {
                 
                 // If wallet is connected via wagmi, use that address
                 if (isConnected && address && address.toLowerCase() === walletAddress.toLowerCase()) {
-                  // Already connected, just fetch user data if we don't have it
-                  if (!userData && mounted) {
-                    await fetchUserData(walletAddress, false);
+                  // Already connected, just fetch user data if we don't have it - NO AUTO NFT GENERATION
+                  if (!userData) {
+                    await fetchUserData(walletAddress, false, false); // Don't trigger NFT generation automatically
                   }
                 } else if (!isConnected && mounted) {
                   // Not connected via wagmi yet, but we have Farcaster wallet
-                  // Fetch user data directly using Farcaster wallet address
-                  await fetchUserData(walletAddress, false);
+                  // Fetch user data directly using Farcaster wallet address - NO AUTO NFT GENERATION
+                  await fetchUserData(walletAddress, false, false); // Don't trigger NFT generation automatically
                 }
               }
             } catch (connectErr) {
@@ -271,15 +293,20 @@ export default function TANFTMinterPro() {
     // Use setTimeout to avoid state updates during render
     const timeoutId = setTimeout(() => {
       initializeSDK();
-    }, 0);
+    }, 100); // Increased timeout to avoid render conflicts
     
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
     };
-  }, [isConnected, address]); // Removed fetchUserData and userData from dependencies to avoid infinite loops
+  }, [isConnected, address, userData, fetchUserData]); // Include all dependencies to prevent stale closures
 
   const mintNFT = async () => {
+    if (loading) {
+      console.log('Mint already in progress, ignoring duplicate call');
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -435,11 +462,18 @@ export default function TANFTMinterPro() {
         // Add cache busting to ensure we get the latest PFP
         if (!nftImageUrl && fetchedUserData.pfp_url) {
           setStep("generate");
-          const pfpUrlWithCache = fetchedUserData.pfp_url.includes('?') 
-            ? `${fetchedUserData.pfp_url}&_t=${Date.now()}` 
+          const pfpUrlWithCache = fetchedUserData.pfp_url.includes('?')
+            ? `${fetchedUserData.pfp_url}&_t=${Date.now()}`
             : `${fetchedUserData.pfp_url}?_t=${Date.now()}`;
           console.log('Generating NFT with PFP URL (mint flow):', pfpUrlWithCache);
-          await generateNFT(pfpUrlWithCache, fetchedUserData.username, castsData?.casts || []);
+          
+          // Use generateNFT with try-catch to handle errors properly
+          try {
+            await generateNFT(pfpUrlWithCache, fetchedUserData.username, castsData?.casts || []);
+          } catch (genErr) {
+            console.error('NFT generation failed during mint flow:', genErr);
+            throw new Error('Failed to generate NFT. Please try again.');
+          }
         } else if (!fetchedUserData.pfp_url) {
           throw new Error('No profile picture found. Please ensure your Farcaster profile has a PFP.');
         }
@@ -768,7 +802,7 @@ export default function TANFTMinterPro() {
       setError('Please enter a username');
       return;
     }
-    fetchUserData(usernameInput.trim(), true);
+    fetchUserData(usernameInput.trim(), true, true); // Trigger NFT generation for manual username input
   };
 
   return (
