@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useConnect, useWalletClient, usePublicClient } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -23,7 +23,8 @@ export default function TANFTMinterPro() {
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [currentPhrase, setCurrentPhrase] = useState<string>("");
 
-  const generateNFT = useCallback(async (pfpUrl: string, username: string, casts: any[] = []) => {
+  // Simple NFT generation function without useCallback to avoid circular dependencies
+  const generateNFT = async (pfpUrl: string, username: string, casts: any[] = []) => {
     if (loading) {
       console.log('NFT generation already in progress, ignoring duplicate call');
       return;
@@ -174,9 +175,10 @@ export default function TANFTMinterPro() {
       }
       setLoading(false);
     }
-  }, [loading, setError, setStep, setGenerationProgress, setCurrentPhrase, setNftImageUrl]);
+  };
 
-  const fetchUserData = useCallback(async (walletOrUsernameOrFid: string, isUsername = false, triggerNFTGeneration = true) => {
+  // Simple user data fetch function
+  const fetchUserData = async (walletOrUsernameOrFid: string, isUsername = false, triggerNFTGeneration = true) => {
     if (loading) {
       console.log('User data fetch already in progress, ignoring duplicate call');
       return;
@@ -253,7 +255,7 @@ export default function TANFTMinterPro() {
       setLoading(false);
       setStep("connect");
     }
-  }, [loading, generateNFT, setUserData, setError, setStep, setLoading]);
+  };
 
   // Initialize Farcaster SDK and auto-connect wallet
   useEffect(() => {
@@ -359,7 +361,7 @@ export default function TANFTMinterPro() {
       mounted = false;
       clearTimeout(timeoutId);
     };
-  }, [isConnected, address, userData, fetchUserData]); // Include fetchUserData now that it's stable
+  }, [isConnected, address, userData]); // Removed fetchUserData to prevent infinite loop
 
   const mintNFT = async () => {
     if (loading) {
