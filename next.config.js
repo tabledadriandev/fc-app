@@ -13,7 +13,8 @@ const nextConfig = {
       'privy.farcaster.xyz',
       'privy.warpcast.com',
       'auth.privy.io',
-      'cloudflareinsights.com'
+      'cloudflareinsights.com',
+      'www.walletlink.org'
     ],
   },
   env: {
@@ -36,7 +37,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "connect-src 'self' https://farcaster.xyz https://client.farcaster.xyz https://warpcast.com https://client.warpcast.com https://wrpcd.net https://*.wrpcd.net https://privy.farcaster.xyz https://privy.warpcast.com https://auth.privy.io https://*.rpc.privy.systems https://cloudflareinsights.com https://explorer-api.walletconnect.com https://*.walletconnect.com https://*.replicate.com https://image.pollinations.ai https://*.pollinations.ai"
+            value: "connect-src 'self' https://farcaster.xyz https://client.farcaster.xyz https://warpcast.com https://client.warpcast.com https://wrpcd.net https://*.wrpcd.net https://privy.farcaster.xyz https://privy.warpcast.com https://auth.privy.io https://*.rpc.privy.systems https://cloudflareinsights.com https://explorer-api.walletconnect.com https://*.walletconnect.com https://*.replicate.com https://image.pollinations.ai https://*.pollinations.ai https://www.walletlink.org wss://www.walletlink.org"
           },
           {
             key: 'X-Frame-Options',
