@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import { parseEther } from "viem";
 
-type Step = "connect" | "check" | "generate" | "preview" | "mint" | "success";
+type Step = "connect" | "generate" | "preview" | "mint" | "success";
 
 export function TANFTMinter() {
   const { address, isConnected } = useAccount();
@@ -23,8 +23,8 @@ export function TANFTMinter() {
   const [showCastPopup, setShowCastPopup] = useState(false);
   const [nftMetadata, setNftMetadata] = useState<any>(null);
 
-  // Step 1: Check user DNA + balance
-  const checkUser = async () => {
+  // Step 1: Generate TA NFT directly (no balance check required)
+  const startGeneration = async () => {
     if (!address || !username) {
       setError("Connect wallet and enter username");
       return;
@@ -34,21 +34,8 @@ export function TANFTMinter() {
     setError("");
 
     try {
-      const res = await fetch("/api/check-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: address,
-          farcasterUsername: username,
-          pfpUrl,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error);
-
-      setTaBalance(data.user.taBalance);
+      // Set default TA balance for NFT traits (no API call needed)
+      setTaBalance(0);
       setStep("generate");
     } catch (err) {
       setError((err as Error).message);
@@ -125,19 +112,6 @@ export function TANFTMinter() {
       // Wait for confirmation
       await publicClient?.waitForTransactionReceipt({ hash });
 
-      // Record mint
-      await fetch("/api/record-mint", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: address,
-          username,
-          nftImageUrl,
-          txHash: hash,
-          taBalance,
-        }),
-      });
-
       setStep("success");
       setShowCastPopup(true);
     } catch (err) {
@@ -151,7 +125,7 @@ export function TANFTMinter() {
   const handleCast = () => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fc-app-sandy.vercel.app';
     const miniAppUrl = 'https://farcaster.xyz/miniapps/MTkL0SXrJvuW/tabledadrian';
-    const castMessage = `🚀 Just minted my hyper-hype TA NFT from @adrsteph.base.eth!
+    const castMessage = `🚀 Just minted my TA NFT from @adrsteph.base.eth!
 
 🌟 This incredible anime-style DeSci character has insane superpowers:
 ⚡ Quantum Energy Manipulation
@@ -159,11 +133,11 @@ export function TANFTMinter() {
 🌌 Temporal Consciousness Access
 💫 Dimensional Reality Surfing
 
-Part of the @tabledadrian DeSci Collection - where science meets cyberpunk!
+Part of the $tabledadrian DeSci Collection - where science meets cyberpunk!
 
 Mint yours: ${miniAppUrl}
 
-$tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
+$tabledadrian`;
 
     // Create Farcaster cast URL
     const castUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(castMessage)}`;
@@ -225,11 +199,11 @@ $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
                   </div>
 
                   <button
-                    onClick={checkUser}
+                    onClick={startGeneration}
                     disabled={loading || !username}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg disabled:opacity-50"
                   >
-                    {loading ? "Checking..." : "Check User DNA & PFP"}
+                    {loading ? "Starting..." : "Start TA NFT Generation"}
                   </button>
                 </>
               )}
@@ -239,7 +213,7 @@ $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
           {/* Step: Generate */}
           {step === "generate" && (
             <div>
-              <h2 className="text-2xl font-bold mb-4">Generate TA NFT Portrait</h2>
+              <h2 className="text-2xl font-bold mb-4">Create Your DeSci Cyberpunk NFT</h2>
               <div className="bg-blue-50 border border-blue-200 px-4 py-3 rounded-lg mb-6">
                 <p className="text-sm">
                   <strong>User:</strong> {username}
@@ -254,7 +228,7 @@ $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
                 disabled={loading}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg disabled:opacity-50"
               >
-                {loading ? "Generating with Replicate AI..." : "Generate TA NFT"}
+                {loading ? "Creating Your DeSci Character..." : "Generate My DeSci Cyberpunk NFT"}
               </button>
             </div>
           )}
@@ -299,7 +273,7 @@ $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
               <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg text-center mb-6">
                 <p className="font-bold mb-2">TA NFT Minted</p>
                 <p className="text-sm mb-4">{username}</p>
-                <p className="text-xs mb-2">0.0001 ETH sent to TANFT Contract</p>
+                <p className="text-xs mb-2">0.0001 ETH sent to $tabledadrian LP</p>
                 <p className="text-xs text-green-600 font-mono">
                   TX: {txHash.substring(0, 20)}...
                 </p>
@@ -321,7 +295,7 @@ $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
                   </h3>
                   <div className="bg-white rounded-lg p-4 mb-4 border">
                     <p className="text-sm text-gray-700 mb-4">
-                      Share your hyper-hype TA NFT on Farcaster and spread the word about the DeSci revolution!
+                      Share your TA NFT on Farcaster and spread the word about the DeSci revolution!
                     </p>
                     
                     {nftMetadata?.traits && nftMetadata.traits.length > 0 && (
@@ -341,7 +315,7 @@ $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
 
                     <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
                       <p className="text-xs text-yellow-800">
-                        <strong>SEO Tip:</strong> Include @tabledadrian and $tabledadrian in your cast to reach the community!
+                        <strong>Tip:</strong> Include @tabledadrian and $tabledadrian in your cast to reach the community!
                       </p>
                     </div>
                   </div>

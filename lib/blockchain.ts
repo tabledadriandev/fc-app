@@ -38,6 +38,20 @@ export const WHITELIST_ABI = [
   },
 ] as const
 
+// TANFT contract ABI for minting NFTs
+export const TANFT_ABI = [
+  {
+    name: 'mint',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'tokenURI', type: 'string' }
+    ],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+] as const
+
 const publicClient = createPublicClient({
   chain: DESCI_CHAIN,
   transport: http(RPC_URL),

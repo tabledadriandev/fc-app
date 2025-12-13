@@ -43,4 +43,7 @@ export const MIN_EUR_VALUE_REQUIREMENT = 1 // 1 EUR worth of $tabledadrian
 export const WHITELIST_CONTRACT_ADDRESS =
   process.env.NEXT_PUBLIC_WHITELIST_CONTRACT_ADDRESS as `0x${string}` | undefined
 
+export const TANFT_CONTRACT_ADDRESS =
+  process.env.NEXT_PUBLIC_TANFT_CONTRACT_ADDRESS as `0x${string}` | undefined
+
 

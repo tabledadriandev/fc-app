@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseEther } from "viem";
+import { parseEther, encodeFunctionData } from "viem";
+import { TANFT_ABI } from "../../../lib/blockchain";
+import { TANFT_CONTRACT_ADDRESS } from "../../../lib/config";
 
 export const dynamic = 'force-dynamic';
 
@@ -17,23 +19,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Recipient address - can be your wallet address or liquidity pool address
-    // Must be an EOA (Externally Owned Account) that can receive ETH directly
-    const RECIPIENT_ADDRESS = process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS;
-
-    if (!RECIPIENT_ADDRESS) {
-      console.error('RECIPIENT_ADDRESS environment variable not set');
+    // TANFT contract address for minting NFTs
+    if (!TANFT_CONTRACT_ADDRESS) {
+      console.error('TANFT_CONTRACT_ADDRESS environment variable not set');
       return NextResponse.json(
-        { error: "Recipient address not configured. Please set NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS in environment variables (can be your wallet address)." },
+        { error: "TANFT contract address not configured. Please set NEXT_PUBLIC_TANFT_CONTRACT_ADDRESS in environment variables." },
         { status: 500 }
       );
     }
 
-    // Validate recipient address format (must be valid Ethereum address)
-    if (!RECIPIENT_ADDRESS.startsWith('0x') || RECIPIENT_ADDRESS.length !== 42) {
-      console.error('Invalid recipient address format:', RECIPIENT_ADDRESS);
+    // Validate contract address format (must be valid Ethereum address)
+    if (!TANFT_CONTRACT_ADDRESS.startsWith('0x') || TANFT_CONTRACT_ADDRESS.length !== 42) {
+      console.error('Invalid TANFT contract address format:', TANFT_CONTRACT_ADDRESS);
       return NextResponse.json(
-        { error: "Invalid recipient address format. Must be a valid Ethereum address (0x followed by 40 hex characters)." },
+        { error: "Invalid TANFT contract address format. Must be a valid Ethereum address (0x followed by 40 hex characters)." },
         { status: 500 }
       );
     }
@@ -48,13 +47,18 @@ export async function POST(req: NextRequest) {
       const valueHex = `0x${valueWei.toString(16)}`;
       console.log('Transaction value (hex):', valueHex);
 
-      // Simple transaction - just send ETH to recipient address (your wallet)
-      // NFT ownership is stored in database, no contract needed
+      // Call TANFT contract mint function
+      const mintData = encodeFunctionData({
+        abi: TANFT_ABI,
+        functionName: 'mint',
+        args: [walletAddress as `0x${string}`, nftImageUrl]
+      });
+
       const transaction = {
-        to: RECIPIENT_ADDRESS as `0x${string}`,
+        to: TANFT_CONTRACT_ADDRESS as `0x${string}`,
         value: valueHex, // Hex string - this is what Ethereum expects
         chainId: 8453,
-        data: "0x" as `0x${string}`, // No contract call needed - plain ETH transfer
+        data: mintData, // Encoded mint function call
       };
 
       console.log('Transaction prepared:', {
@@ -78,7 +82,7 @@ export async function POST(req: NextRequest) {
           name: `TA NFT: ${username}`,
           collection: "Table d'Adrian DeSci Collection",
           price: "0.0001 ETH",
-          destination: "Your Wallet (stored in database) + Recipient Address",
+          destination: "TANFT Contract (0xfd7566e7e103b2233952296793443e8af9d1f118)",
         },
       };
 
