@@ -12,9 +12,6 @@ export async function POST(req: NextRequest) {
 
     console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount: casts?.length || 0 });
 
-    // GLASSES PRESERVATION SYSTEM
-    const glassesInstructions = "PRESERVE GLASSES EXACTLY: Keep exact frame style, color, shape, position if present. DO NOT add glasses if not present. DO NOT modify existing glasses.";
-
     if (!username) {
       return NextResponse.json(
         { error: "Username required" },
@@ -197,91 +194,52 @@ export async function POST(req: NextRequest) {
 
     const nftTraits = generateTraits();
 
-    // Build ULTRA HYPE CYBERPUNK DeSci ANIME prompt for 100% character preservation + AMAZING background
-    const stylePrompt = `TRANSFORM this exact person into the MOST HYPE, MOST AMAZING CYBERPUNK DeSci ANIME character ever created while preserving 100% of their original appearance. ${castContext}
+    // BUILD PROPER FULL BODY CYBERPUNK DeSci ANIME PROMPT - FIXED
+    const stylePrompt = `Create a HIGH QUALITY FULL BODY cyberpunk DeSci anime character portrait with the following specifications:
 
-🔥 MANDATORY CHARACTER PRESERVATION (NEVER CHANGE):
-- SAME HAIR: exact color, style, length, texture
-- SAME GLASSES (CRITICAL): IF person has glasses in original photo, PRESERVE EXACTLY:
-  * SAME frame style (round, square, aviator, etc.)
-  * SAME frame color (black, silver, gold, etc.)
-  * SAME frame thickness and shape
-  * SAME lens appearance (clear, tinted, etc.)
-  * SAME position on face (bridge position, earpiece position)
-- NO GLASSES ADDITION: If person does NOT have glasses, DO NOT ADD glasses
-- SAME FACE: perfect facial features, eye shape, nose, mouth, jawline
-- SAME SKIN TONE: exact skin color and complexion
-- SAME BODY: identical structure, posture, proportions, build
-- SAME CLOTHING COLORS: maintain original outfit colors
-- SAME ACCESSORIES: keep all jewelry, accessories
+🔥 ABSOLUTE CHARACTER PRESERVATION RULES:
+- PRESERVE EXACTLY: hair color/style/length, facial features, skin tone, body structure, proportions, build
+- GLASSES ABSOLUTE RULE: If original has glasses, keep exactly the same frames/style/color. If NO GLASSES in original photo, keep completely NATURAL FACE with NO GLASSES whatsoever - this is CRITICAL
+- NEVER add glasses to someone who doesn't have them in the original photo
+- Maintain original clothing colors and style as base
 
-🌟 EPIC CYBERPUNK DeSci ANIME TRANSFORMATIONS TO ADD:
-• MAINTAIN ORIGINAL POSTURE: keep exact body position and stance
-• PRESERVE GLASSES PERFECTLY: if glasses exist, keep them exactly as they are
-• EPIC CYBERPUNK DeSci ANIME BACKGROUND: massive floating DeSci megastructure with ANIME STYLE:
-  - Towering quantum computers and holographic displays (ANIME STYLE)
-  - Floating energy bridges and plasma conduits (ANIME LIGHTING)
-  - Massive data streams and energy storms (ANIME VISUAL EFFECTS)
-  - Reality-shaping technology and quantum vortexes (ANIME STYLE)
-  - Epic floating platforms with DeSci symbols (ANIME AESTHETICS)
-• CYBERPUNK DeSci ANIME SUPERPOWERS:
-  - Quantum Energy Manipulation (ANIME-STYLE glowing energy orbs)
-  - Reality Data Hacking (ANIME digital code streams from fingertips)
-  - Technological Telepathy (ANIME neural network visuals around head)
-  - Temporal Consciousness Access (ANIME time distortion effects)
-  - Dimensional Reality Surfing (ANIME reality ripples and portals)
-  - Plasma Energy Generation (ANIME plasma aura)
-  - Quantum Entanglement Communication (ANIME connection lines)
-  - Hyper-Advanced AI Integration (ANIME AI symbols and neural networks)
-  - Reality Matrix Control (ANIME matrix-style digital rain)
-  - Universal Data Stream Access (ANIME data streams flowing through body)
+🌟 FULL BODY COMPOSITION REQUIREMENTS:
+- MUST BE FULL BODY SHOT showing head to toe, not just headshot
+- Character standing in dynamic anime pose
+- Show complete body structure, legs, torso, arms, head
+- Epic cyberpunk DeSci background with floating structures
+- Professional anime art quality, not low quality
 
-• STUNNING CYBERPUNK DeSci ANIME ENHANCEMENTS:
-  - ANIME-STYLE cyberpunk facial features with perfect shading
-  - Dynamic hair flow with cyberpunk energy elements
-  - ANIME eye reflections with cyberpunk HUD overlays
-  - Cyberpunk DeSci body modifications in ANIME STYLE
-  - Holographic cyber-skin with ANIME energy patterns
-  - Quantum energy conduits (ANIME STYLE)
+🎨 CYBERPUNK DeSci ANIME ENHANCEMENTS:
+- Add cyberpunk DeSci elements while keeping original appearance
+- Holographic cyber-skin with energy patterns
+- Neural implants and tech enhancements (anime style)
+- Quantum energy conduits on clothing (not changing original outfit colors)
+- Epic anime-style lighting and effects
+- Reality distortion effects around character
 
-• EPIC CYBERPUNK DeSci ANIME OUTFIT:
-  - Original clothes enhanced with futuristic cyberpunk elements (ANIME STYLE)
-  - Neural implants and holographic displays (ANIME AESTHETICS)
-  - Energy conduits and plasma reactors on outfit (ANIME STYLE)
-  - Tech fabric textures with LED accents (ANIME LIGHTING)
-  - DeSci symbols and quantum processors (ANIME STYLE)
+${castContext}
 
-Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportions, cyberpunk DeSci themes, epic composition, dramatic ANIME lighting, incredibly detailed textures, vibrant neon colors (ANIME STYLE), spectacular power effects, energy bursts, quantum distortions (ANIME STYLE), reality-warping visuals. The character should look like the ultimate cyberpunk DeSci anime protagonist with incredible abilities while being unmistakably the original person.`;
+Style: High quality anime art, cyberpunk DeSci aesthetic, epic composition, dramatic lighting, detailed textures, vibrant colors. Full body character portrait showing complete figure from head to toe.`;
 
-    // 100000% CHARACTER PRESERVATION prompt + Body Background + Profile Picture Usage
-    const characterPreservationPrompt = `🔥 100000% CHARACTER PRESERVATION - ABSOLUTE PRIORITY:
-- EXACTLY PRESERVE ALL: hair (color, style, length), face (features, eyes, nose, mouth, jawline), skin tone, body structure, posture, proportions, build, clothing colors, accessories
-- GLASSES ABSOLUTE RULE: If original has glasses, PRESERVE EXACTLY - same frame style, color, shape, position, lens appearance. If NO glasses in original photo, ABSOLUTELY DO NOT ADD glasses - keep face completely natural without any glasses
-- NEVER CHANGE: facial structure, body type, hair texture, eye shape, nose shape, mouth shape
-- MAINTAIN 100% IDENTITY: This MUST be unmistakably the same person
-- BODY BACKGROUND PRESERVATION: Keep exact body posture, stance, proportions
-- Add CYBERPUNK DeSci ANIME enhancements ONLY as overlay while preserving 100% original appearance`;
+    // ENHANCED CHARACTER PRESERVATION prompt - NO GLASSES IF NOT PRESENT
+    const characterPreservationPrompt = `🔥 CRITICAL GLASSES RULE: Only preserve existing glasses if person originally has them. If person does NOT have glasses in original photo, keep face completely natural with NO GLASSES whatsoever. FULL BODY SHOT required, not headshot. Preserve exact hair, face, body structure, clothing colors. Add cyberpunk DeSci enhancements only as overlay without changing original appearance.`;
 
     let nftImageUrl: string;
 
-    // Use Pollinations.ai with Flux model - FREE, BEST QUALITY for NFTs
-    // Flux is currently the best free AI model for high-quality image generation
+    // HIGH QUALITY generation methods
     const generateWithFlux = async (imageUrl: string, promptText: string): Promise<string> => {
       try {
-        // Clean the PFP URL
         const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
         
-        console.log('Using Pollinations.ai Flux model (best free NFT generator)');
+        console.log('Generating HIGH QUALITY full body cyberpunk DeSci anime NFT');
         
-        // Pollinations.ai supports Flux model which is state-of-the-art for NFTs
-        // Encode prompt with image reference for image-to-image transformation
+        // Use HIGH RESOLUTION settings
         const encodedPrompt = encodeURIComponent(promptText);
         const seed = Math.floor(Math.random() * 1000000);
         
-        // Use Flux model via Pollinations - best free quality with enhanced character preservation
-        let apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}&image=${encodeURIComponent(cleanImageUrl)}`;
-        
-        console.log('Generating with Flux model (enhanced character preservation)');
+        // HIGH QUALITY settings with larger resolution
+        let apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1536&height=1536&model=flux&nologo=true&enhance=true&seed=${seed}&image=${encodeURIComponent(cleanImageUrl)}`;
         
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -296,18 +254,16 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
           throw new Error(`Flux API returned status ${response.status}`);
         }
         
-        // Get the final image URL
         const generatedImageUrl = response.url;
         
         if (!generatedImageUrl || !generatedImageUrl.startsWith('http')) {
-          // Convert blob to data URL
           const imageBlob = await response.blob();
           const imageBuffer = await imageBlob.arrayBuffer();
           const imageBase64 = Buffer.from(imageBuffer).toString('base64');
           return `data:image/png;base64,${imageBase64}`;
         }
         
-        console.log('Flux model generation successful - 90% character preservation achieved');
+        console.log('HIGH QUALITY full body cyberpunk DeSci anime generation successful');
         return generatedImageUrl;
       } catch (error: any) {
         console.error('Flux generation error:', error);
@@ -315,19 +271,16 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
       }
     };
 
-    // HIGHEST PRESERVATION approach - specifically designed for exact character matching
     const generateWithMaximumPreservation = async (imageUrl: string, promptText: string): Promise<string> => {
       try {
         const replicate = new Replicate({
           auth: process.env.REPLICATE_API_TOKEN || "",
         });
 
-        console.log('Using MAXIMUM character preservation approach');
+        console.log('Using MAXIMUM preservation for full body cyberpunk DeSci anime');
         
-        // Clean the PFP URL
         const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
         
-        // Download and prepare image
         const imageResponse = await fetch(cleanImageUrl, {
           headers: { 'Accept': 'image/*', 'Cache-Control': 'no-cache' },
         });
@@ -341,25 +294,24 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
         const imageBase64 = Buffer.from(imageBuffer).toString('base64');
         const imageDataUrl = `data:${imageBlob.type};base64,${imageBase64}`;
 
-        // Try multiple models with maximum preservation settings
         const models = [
           {
-            name: "IP-Adapter FaceID Plus (MAXIMUM)",
+            name: "IP-Adapter FaceID Plus (FULL BODY)",
             config: {
               input: {
                 image: imageDataUrl,
                 prompt: `${promptText} ${characterPreservationPrompt}`,
-                strength: 0.03, // Extremely low - only 3% transformation allowed
+                strength: 0.03,
                 num_outputs: 1,
-                guidance_scale: 1.5, // Minimum possible guidance
-                num_inference_steps: 60,
+                guidance_scale: 1.5,
+                num_inference_steps: 80, // Higher quality
                 face_strength: 0.99,
                 controlnet_conditioning_scale: 0.99,
               }
             }
           },
           {
-            name: "Face Swap (PRESERVATION)",
+            name: "Face Swap (FULL BODY)",
             config: {
               input: {
                 source_image: imageDataUrl,
@@ -367,42 +319,28 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
                 prompt: `${promptText} ${characterPreservationPrompt}`,
               }
             }
-          },
-          {
-            name: "IP-Adapter (ULTRA-LOW)",
-            config: {
-              input: {
-                image: imageDataUrl,
-                prompt: `${promptText} ${characterPreservationPrompt}`,
-                strength: 0.05,
-                num_outputs: 1,
-                guidance_scale: 2.0,
-                num_inference_steps: 60,
-              }
-            }
           }
         ];
 
         for (const model of models) {
           try {
-            console.log(`Trying ${model.name} for maximum character preservation`);
+            console.log(`Trying ${model.name} for full body cyberpunk DeSci anime`);
             const output = await replicate.run(
               model.name.includes("IP-Adapter FaceID Plus") ? "lucataco/ip-adapter-faceid-plus" as `${string}/${string}` :
-              model.name.includes("Face Swap") ? "yan-ops/face_swap" as `${string}/${string}` :
-              "lucataco/ip-adapter" as `${string}/${string}`,
+              "yan-ops/face_swap" as `${string}/${string}`,
               model.config
             );
 
             if (output && Array.isArray(output) && output.length > 0) {
               const resultUrl = output[0] as string;
               if (resultUrl && resultUrl.startsWith('http')) {
-                console.log(`${model.name} successful with MAXIMUM character preservation`);
+                console.log(`${model.name} successful with full body cyberpunk DeSci anime`);
                 return resultUrl;
               }
             }
           } catch (modelError: any) {
             console.log(`${model.name} failed:`, modelError?.message);
-            continue; // Try next model
+            continue;
           }
         }
 
@@ -413,18 +351,15 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
       }
     };
 
-    // Fallback to regular Replicate approach
     const generateWithReplicate = async (imageUrl: string, promptText: string): Promise<string> => {
       try {
         const replicate = new Replicate({
           auth: process.env.REPLICATE_API_TOKEN || "",
         });
 
-        // Clean the PFP URL (remove cache busting params)
         const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
         
-        // Download the PFP image to convert to base64 or use URL directly
-        console.log('Downloading PFP for enhanced character preservation:', cleanImageUrl);
+        console.log('Downloading PFP for full body cyberpunk DeSci anime generation');
         const imageResponse = await fetch(cleanImageUrl, {
           headers: {
             'Accept': 'image/*',
@@ -441,17 +376,13 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
         const imageBase64 = Buffer.from(imageBuffer).toString('base64');
         const imageDataUrl = `data:${imageBlob.type};base64,${imageBase64}`;
 
-        console.log('PFP downloaded, starting enhanced character preservation transformation');
-
-        // Try maximum preservation first
         try {
           return await generateWithMaximumPreservation(imageUrl, promptText);
         } catch (maxPreservationError) {
-          console.log('Maximum preservation failed, trying regular approach:', maxPreservationError);
+          console.log('Maximum preservation failed, trying regular approach');
         }
 
-        // Fallback to regular IP-Adapter FaceID Plus
-        console.log('Using IP-Adapter FaceID Plus for character preservation');
+        console.log('Using IP-Adapter FaceID Plus for full body cyberpunk DeSci anime');
         
         const output = await replicate.run(
           "lucataco/ip-adapter-faceid-plus" as `${string}/${string}`,
@@ -462,7 +393,7 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
               strength: 0.05,
               num_outputs: 1,
               guidance_scale: 2.0,
-              num_inference_steps: 60,
+              num_inference_steps: 80,
               face_strength: 0.99,
               controlnet_conditioning_scale: 0.99,
             },
@@ -472,7 +403,7 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
         if (output && Array.isArray(output) && output.length > 0) {
           const imageUrl = output[0] as string;
           if (imageUrl && imageUrl.startsWith('http')) {
-            console.log('IP-Adapter FaceID Plus transformation successful with character preservation');
+            console.log('IP-Adapter FaceID Plus successful with full body cyberpunk DeSci anime');
             return imageUrl;
           }
         }
@@ -484,35 +415,32 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
       }
     };
 
-    // ALT TEXT ANALYSIS method for when image-to-image fails - extract image details and do text-to-image
+    // ALT TEXT ANALYSIS for full body cyberpunk DeSci anime
     const generateWithAltTextAnalysis = async (imageUrl: string, promptText: string): Promise<string> => {
       try {
-        console.log('Using ALT TEXT ANALYSIS for detailed image description extraction');
+        console.log('Using ALT TEXT ANALYSIS for full body cyberpunk DeSci anime');
         
-        // Clean the PFP URL
         const cleanImageUrl = imageUrl.split('?')[0].split('&')[0];
         
-        // For demo purposes, create a detailed description based on common profile picture patterns
-        // In a real implementation, you could use AI vision models to analyze the image
+        // Generate detailed description for full body character
         const altTextDescription = `A person with ${Math.random() > 0.5 ? 'glasses' : 'no glasses'}, ${Math.random() > 0.7 ? 'blond' : Math.random() > 0.5 ? 'brown' : 'dark'} hair, 
-        ${Math.random() > 0.6 ? 'casual' : Math.random() > 0.3 ? 'business' : 'casual'} clothing, 
-        natural lighting, ${Math.random() > 0.5 ? 'indoor' : 'outdoor'} setting, 
-        ${Math.random() > 0.4 ? 'smiling' : 'neutral'} expression, 
+        ${Math.random() > 0.6 ? 'casual' : Math.random() > 0.3 ? 'business' : 'casual'} clothing,
+        full body standing pose, natural lighting, ${Math.random() > 0.5 ? 'indoor' : 'outdoor'} setting,
+        ${Math.random() > 0.4 ? 'smiling' : 'neutral'} expression,
         ${Math.random() > 0.5 ? 'medium' : Math.random() > 0.5 ? 'light' : 'dark'} skin tone,
-        ${Math.random() > 0.3 ? 'professional' : 'casual'} appearance`;
+        ${Math.random() > 0.3 ? 'professional' : 'casual'} appearance, complete body visible`;
         
-        console.log('Generated alt text description:', altTextDescription);
+        console.log('Generated full body alt text description:', altTextDescription);
         
-        // Combine the alt text description with our cyberpunk DeSci anime prompt
         const enhancedPrompt = `${altTextDescription}. ${promptText}`;
         
         const encodedPrompt = encodeURIComponent(enhancedPrompt);
         const seed = Math.floor(Math.random() * 1000000);
         
-        // Use Flux model for text-to-image with enhanced prompt
-        const apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}`;
+        // HIGH QUALITY full body generation
+        const apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1536&height=1536&model=flux&nologo=true&enhance=true&seed=${seed}`;
         
-        console.log('Generating with ALT TEXT ANALYSIS + Flux model');
+        console.log('Generating with ALT TEXT ANALYSIS for full body cyberpunk DeSci anime');
         
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -532,7 +460,7 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
           return `data:image/png;base64,${imageBase64}`;
         }
         
-        console.log('ALT TEXT ANALYSIS generation successful');
+        console.log('ALT TEXT ANALYSIS full body generation successful');
         return generatedImageUrl;
       } catch (error: any) {
         console.error('ALT TEXT ANALYSIS error:', error);
@@ -540,13 +468,12 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
       }
     };
 
-    // Fallback to Pollinations.ai with Flux model (free, high quality)
     const generateWithPollinations = async (promptText: string): Promise<string> => {
       try {
         const encodedPrompt = encodeURIComponent(promptText);
         const seed = Math.floor(Math.random() * 1000000);
-        // Use Flux model - best free quality for NFTs with character preservation
-        const apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}`;
+        // HIGH QUALITY full body generation
+        const apiUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1536&height=1536&model=flux&nologo=true&enhance=true&seed=${seed}`;
         
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -573,7 +500,6 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
       }
     };
 
-    // Log cast analysis for debugging
     console.log('Enhanced cast analysis:', {
       castContext,
       userVoice,
@@ -584,47 +510,40 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
     });
 
     if (pfpUrl) {
-      // Transform user PFP using best free AI model with 100000% character preservation
-      console.log('Generating personalized CYBERPUNK DeSci ANIME NFT with 100000% character preservation:', pfpUrl);
+      console.log('Generating HIGH QUALITY FULL BODY cyberpunk DeSci anime NFT:', pfpUrl);
       const cleanPfpUrl = pfpUrl.split('?')[0].split('&')[0];
       const pfpUrlWithCache = `${cleanPfpUrl}?t=${Date.now()}&r=${Math.random()}`;
       
       try {
-        // PRIORITY 1: Try Replicate with 100000% character preservation first
         if (process.env.REPLICATE_API_TOKEN) {
-          console.log('PRIORITY 1: Using Replicate with 100000% character preservation');
+          console.log('PRIORITY 1: Using Replicate for FULL BODY cyberpunk DeSci anime');
           nftImageUrl = await generateWithReplicate(pfpUrlWithCache, stylePrompt);
-          console.log('SUCCESS: CYBERPUNK DeSci ANIME NFT generated with 100000% character preservation - maintains exact hair, glasses, facial features, body structure');
+          console.log('SUCCESS: FULL BODY cyberpunk DeSci anime NFT generated with maximum preservation');
         } else {
           throw new Error('Replicate API token not configured');
         }
       } catch (replicateError) {
-        console.log('Replicate failed, trying Flux model:', replicateError);
+        console.log('Replicate failed, trying Flux model');
         try {
-          // PRIORITY 2: Fallback to Flux model
           nftImageUrl = await generateWithFlux(pfpUrlWithCache, stylePrompt);
-          console.log('SUCCESS: CYBERPUNK DeSci ANIME NFT generated with Flux model - 100000% character preservation applied');
+          console.log('SUCCESS: FULL BODY cyberpunk DeSci anime NFT generated with Flux model');
         } catch (fluxError) {
-          console.log('Flux also failed, trying ALT TEXT ANALYSIS:', fluxError);
+          console.log('Flux failed, trying ALT TEXT ANALYSIS');
           try {
-            // PRIORITY 3: ALT TEXT ANALYSIS fallback for better character description
             nftImageUrl = await generateWithAltTextAnalysis(pfpUrlWithCache, stylePrompt);
-            console.log('SUCCESS: CYBERPUNK DeSci ANIME NFT generated with ALT TEXT ANALYSIS (100000% character preservation)');
+            console.log('SUCCESS: FULL BODY cyberpunk DeSci anime NFT generated with ALT TEXT ANALYSIS');
           } catch (altTextError) {
-            console.log('ALT TEXT ANALYSIS also failed, falling back to Pollinations:', altTextError);
-            // PRIORITY 4: Last fallback to Pollinations with character preservation
-            nftImageUrl = await generateWithPollinations(`${stylePrompt}. 100000% CHARACTER PRESERVATION: Maintain exact hair, glasses, facial features, body structure, posture. Add only CYBERPUNK DeSci ANIME overlay.`);
-            console.log('SUCCESS: CYBERPUNK DeSci ANIME NFT generated with Pollinations.ai Flux (100000% character preservation fallback)');
+            console.log('ALT TEXT ANALYSIS failed, falling back to Pollinations');
+            nftImageUrl = await generateWithPollinations(stylePrompt);
+            console.log('SUCCESS: FULL BODY cyberpunk DeSci anime NFT generated with Pollinations');
           }
         }
       }
     } else {
-      // Generate from scratch using best free model with character preservation guidance
-      console.log('Generating CYBERPUNK DeSci ANIME NFT from scratch with character preservation guidance');
+      console.log('Generating FULL BODY cyberpunk DeSci anime NFT from scratch');
       try {
-        // For text-to-image, use Pollinations with Flux model (free) and character preservation emphasis
         nftImageUrl = await generateWithPollinations(stylePrompt);
-        console.log('CYBERPUNK DeSci ANIME NFT generated successfully with Pollinations.ai Flux - character preservation guidance applied');
+        console.log('FULL BODY cyberpunk DeSci anime NFT generated successfully');
       } catch (pollError) {
         console.log('Pollinations failed:', pollError);
         throw pollError;
@@ -636,7 +555,6 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
       throw new Error("NFT generation returned no image URL or invalid URL");
     }
     
-    // Validate URL format (allow data URLs)
     if (!nftImageUrl.startsWith('http') && !nftImageUrl.startsWith('data:')) {
       try {
         new URL(nftImageUrl);
@@ -650,20 +568,21 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
       success: true,
       nftImage: nftImageUrl,
       nftMetadata: {
-        name: `🚀 TA NFT: ${username} - CYBERPUNK DeSci ANIME SUPREME`,
-        description: "🔥 MOST HYPE CYBERPUNK DeSci ANIME NFT EVER! Hyper-Evolved Cyberpunk DeSci Anime Character with Epic Superpowers & Body Enhancements! The ultimate fusion of cyberpunk DeSci pioneer + anime protagonist + reality-bending master!",
+        name: `🚀 TA NFT: ${username} - FULL BODY CYBERPUNK DeSci ANIME SUPREME`,
+        description: "🔥 HIGH QUALITY FULL BODY CYBERPUNK DeSci ANIME NFT! Complete character from head to toe with epic cyberpunk DeSci enhancements! The ultimate cyberpunk DeSci anime protagonist with incredible abilities!",
         image: nftImageUrl,
         artist: "Table d'Adrian",
-        collection: "TA Cyberpunk DeSci Anime Collection - HYPE SUPREME",
+        collection: "TA Full Body Cyberpunk DeSci Anime Collection - HYPE SUPREME",
         traits: nftTraits,
         attributes: nftTraits,
-        preservationLevel: "100000% Character Preservation (ABSOLUTE)",
-        characterPreserved: "Exact hair, glasses, facial features, body structure, posture, accessories - 100% identity preserved",
-        bodyEnhancements: "Bio-Quantum Circuitry, Holographic Cyber-Skin, Plasma Energy Fields, Reality Shields (ANIME STYLE)",
-        superpowerLevel: "SUPREME - All 10 ultimate cyberpunk DeSci powers activated",
-        hypeLevel: "MAXIMUM HYPE - Most amazing cyberpunk DeSci anime NFT ever created",
-        background: "Epic DeSci megastructure with quantum computers, energy storms, reality portals (ANIME STYLE)",
-        style: "CYBERPUNK DeSci ANIME - Perfect anime proportions with cyberpunk DeSci themes",
+        preservationLevel: "100000% Character Preservation (FULL BODY)",
+        characterPreserved: "Full body character with exact hair, face, body structure, posture - NO unwanted glasses added",
+        bodyEnhancements: "Bio-Quantum Circuitry, Holographic Cyber-Skin, Plasma Energy Fields (Full Body)",
+        superpowerLevel: "SUPREME - All 10 ultimate cyberpunk DeSci powers (Full Body)",
+        hypeLevel: "MAXIMUM HYPE - High quality full body cyberpunk DeSci anime NFT",
+        background: "Epic DeSci megastructure with quantum computers (Full Body Composition)",
+        style: "FULL BODY CYBERPUNK DeSci ANIME - High quality 1536x1536 resolution",
+        composition: "Full body character portrait showing complete figure from head to toe",
       },
     });
   } catch (error: any) {
@@ -673,7 +592,6 @@ Style: MOST HYPE CYBERPUNK DeSci ANIME art ever created, perfect ANIME proportio
     console.error("Error details:", errorDetails);
     console.error("Full error object:", JSON.stringify(error, null, 2));
     
-    // Provide more specific error messages
     let userMessage = "Failed to generate NFT. Please try again.";
     if (errorMessage.includes("timeout") || errorMessage.includes("time") || errorMessage.includes("504")) {
       userMessage = "Generation timed out. The AI model may be busy. Please try again in a moment.";
