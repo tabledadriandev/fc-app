@@ -285,7 +285,7 @@ $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
               >
                 {loading
                   ? "Processing Mint..."
-                  : "Mint NFT (0.001 ETH to TANFT Contract)"}
+                  : "Mint NFT (0.0001 ETH to TANFT Contract)"}
               </button>
             </div>
           )}
@@ -299,7 +299,7 @@ $tabledadrian #DeSci #NFT #Cyberpunk #Anime #TableDadrian`;
               <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg text-center mb-6">
                 <p className="font-bold mb-2">TA NFT Minted</p>
                 <p className="text-sm mb-4">{username}</p>
-                <p className="text-xs mb-2">0.001 ETH sent to TANFT Contract</p>
+                <p className="text-xs mb-2">0.0001 ETH sent to TANFT Contract</p>
                 <p className="text-xs text-green-600 font-mono">
                   TX: {txHash.substring(0, 20)}...
                 </p>

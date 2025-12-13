@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
     // Build sophisticated, personalized prompt for hyper-hype anime character design
     const stylePrompt = `Generate for me a hyper hype NFT of an anime/illustration for a character from DeSci world super evolved with extreme cyberpunk aesthetics. ${castContext}Character Design: Create an incredibly powerful, hyper-evolved DeSci character with extreme cyberpunk fusion aesthetics. This character has mastered the highest levels of scientific sorcery and technological mastery. Style: extreme anime/illustration art, cyberpunk aesthetic with DeSci elements, ultra-detailed and non-realistic.
 
-CRITICAL FACE PRESERVATION: Keep the EXACT same face, head shape, facial features, expression, and head position from the original image. The face, head, eyes, nose, mouth, and overall facial structure must remain IDENTICAL to the original. SAME CLOTHES, SAME COLORS, 90% 1/1 match.
+CRITICAL 1:1 FACE PRESERVATION: This MUST be a 1:1 EXACT transformation of the original face. Keep the IDENTICAL face, head shape, facial features, expression, head position, eye shape, nose structure, mouth shape, jawline, skin tone, hair style, and ALL facial characteristics. The transformation should only add cyberpunk/DeSci elements to the SAME face - NOT create a new character. SAME CLOTHES, SAME COLORS, SAME FACIAL STRUCTURE - 99% face preservation required. DO NOT change the face structure, facial features, or head shape. ONLY add cyberpunk elements to the existing face.
 
 Character Transformation: Transform into a hyper-hype, super-evolved DeSci master with incredible superpowers and abilities. Add cyber-augmented DeSci attire that reflects their original clothes but enhanced with futuristic elements, neural implants, holographic displays, energy conduits, plasma reactors, quantum processors, and advanced scientific equipment integrated into their clothing. Include extreme cyberpunk visual effects, energy auras, data streams, plasma fields, quantum distortions, reality ripples, and spectacular power manifestations. The character should have multiple incredible superpowers:
 - Quantum Energy Manipulation
@@ -274,12 +274,12 @@ Visual Style: Ultra high resolution, NFT ready, professional anime art, dramatic
               input: {
                 image: imageDataUrl,
                 prompt: promptText,
-                strength: 0.65, // Lower strength to preserve more of original face/head
+                strength: 0.4, // Much lower strength to preserve more of original face/head
                 num_outputs: 1,
-                guidance_scale: 7.0, // Slightly lower guidance for more faithful transformation
-                num_inference_steps: 40, // More steps for better quality
-                face_strength: 0.95, // Very high face strength to preserve exact facial features
-                controlnet_conditioning_scale: 0.8, // Control how much the original image influences the result
+                guidance_scale: 6.0, // Lower guidance for more faithful face preservation
+                num_inference_steps: 50, // More steps for better quality
+                face_strength: 0.98, // Extremely high face strength to preserve exact facial features
+                controlnet_conditioning_scale: 0.9, // Control how much the original image influences the result
               },
             }
           );
@@ -325,10 +325,10 @@ Visual Style: Ultra high resolution, NFT ready, professional anime art, dramatic
                   input: {
                     image: imageDataUrl,
                     prompt: promptText,
-                    strength: 0.6, // Lower strength to preserve more of original face/head
+                    strength: 0.35, // Much lower strength to preserve more of original face/head
                     num_outputs: 1,
-                    guidance_scale: 6.5, // Lower guidance for more faithful face preservation
-                    num_inference_steps: 40,
+                    guidance_scale: 6.0, // Lower guidance for more faithful face preservation
+                    num_inference_steps: 50,
                   },
                 }
               );

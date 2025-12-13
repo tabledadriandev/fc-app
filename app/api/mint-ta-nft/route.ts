@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // Parse the ETH value (0.001 ETH = 1000000000000000 wei)
-      const valueWei = parseEther("0.001");
+      // Parse the ETH value (0.0001 ETH = 100000000000000 wei)
+      const valueWei = parseEther("0.0001");
       console.log('Transaction value parsed (wei):', valueWei.toString());
 
       // Convert BigInt to hex string for JSON serialization
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
           username,
           name: `TA NFT: ${username}`,
           collection: "Table d'Adrian DeSci Collection",
-          price: "0.001 ETH",
+          price: "0.0001 ETH",
           destination: "Your Wallet (stored in database) + Recipient Address",
         },
       };
