@@ -35,12 +35,13 @@ export default function TANFTMinterPro() {
       return;
     }
 
+    // ALWAYS show the progress bar immediately - NO EXCEPTIONS!
     setLoading(true);
     setError("");
     setStep("generate");
     setGenerationProgress(0);
     
-    // Fun dev phrases for progress - ALWAYS SHOW THESE!
+    // Fun dev phrases for progress - GUARANTEED TO SHOW!
     const phrases = [
       "Initializing quantum NFT generator...",
       "Downloading your PFP from the blockchain...",
@@ -64,7 +65,7 @@ export default function TANFTMinterPro() {
       }
     };
     
-    // Start progress updates IMMEDIATELY
+    // Start progress updates IMMEDIATELY - THIS WILL ALWAYS SHOW!
     updateProgress();
     const progressInterval = setInterval(() => {
       if (currentPhraseIndex < phrases.length) {
@@ -73,6 +74,19 @@ export default function TANFTMinterPro() {
         clearInterval(progressInterval);
       }
     }, 2000); // Update every 2 seconds
+    
+    // Always complete the progress bar for the full experience
+    const completeProgress = () => {
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      setCurrentPhrase("Generation complete! 🎨");
+      
+      // Don't reset immediately - let user see completion
+      setTimeout(() => {
+        setGenerationProgress(0);
+        setCurrentPhrase("");
+      }, 4000);
+    };
     
     try {
       // Validate data before sending
@@ -107,14 +121,19 @@ export default function TANFTMinterPro() {
         throw new Error('Server returned non-JSON response');
       }
 
-      clearInterval(progressInterval);
-      setGenerationProgress(100);
-      setCurrentPhrase("Generation complete! 🎨");
+      // Complete the progress bar
+      completeProgress();
 
       if (!res.ok) {
         const errorMsg = data?.details || data?.message || data?.error || `NFT generation failed with status ${res.status}`;
         console.error('NFT generation API error:', { status: res.status, error: data });
-        throw new Error(errorMsg);
+        
+        // Show completion then error
+        setTimeout(() => {
+          setError(errorMsg);
+          setStep("connect");
+        }, 2000);
+        return;
       }
 
       if (!data?.nftImage) {
@@ -122,29 +141,26 @@ export default function TANFTMinterPro() {
       }
 
       setNftImageUrl(data.nftImage);
-      setStep("preview");
+      
+      // Show success then go to preview
+      setTimeout(() => {
+        setStep("preview");
+      }, 2000);
+      
     } catch (err) {
-      clearInterval(progressInterval);
       console.error('Error generating NFT:', err);
       
-      // Show a completion message even on error so user knows it finished
-      setGenerationProgress(100);
-      setCurrentPhrase("Generation attempt complete! 🎨");
+      // Always complete the progress bar first
+      completeProgress();
       
-      const errorMessage = err instanceof Error ? err.message : 'NFT generation failed';
-      setError(errorMessage);
-      
-      // Don't immediately reset step - let user see the completion message
+      // Show error after completion
       setTimeout(() => {
+        const errorMessage = err instanceof Error ? err.message : 'NFT generation failed';
+        setError(errorMessage);
         setStep("connect");
-      }, 3000); // Wait 3 seconds before resetting
+      }, 2000);
     } finally {
       setLoading(false);
-      // Don't immediately reset progress - let it complete first
-      setTimeout(() => {
-        setGenerationProgress(0);
-        setCurrentPhrase("");
-      }, 5000); // Wait 5 seconds before clearing
     }
   }, []);
 

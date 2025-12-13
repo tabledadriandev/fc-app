@@ -7,22 +7,24 @@ export const dynamic = 'force-dynamic';
 // Flux is currently the state-of-the-art free AI model for high-quality image generation
 
 export async function POST(req: NextRequest) {
+  let requestBody;
+  
   try {
-    let requestBody;
-    try {
-      requestBody = await req.json();
-    } catch (parseError) {
-      console.error('JSON parsing error:', parseError);
-      return NextResponse.json(
-        {
-          error: "Invalid JSON in request body",
-          details: "Please check your request format",
-          message: "Request body contains invalid JSON"
-        },
-        { status: 400 }
-      );
-    }
+    // Try to parse JSON with better error handling
+    requestBody = await req.json();
+  } catch (parseError) {
+    console.error('JSON parsing error in API route:', parseError);
+    return NextResponse.json(
+      {
+        error: "Invalid JSON in request body",
+        details: "Please check your request format",
+        message: "Request body contains invalid JSON"
+      },
+      { status: 400 }
+    );
+  }
 
+  try {
     const { pfpUrl, username, taBalance, casts } = requestBody;
 
     console.log('NFT generation request:', { username, hasPfp: !!pfpUrl, castsCount: casts?.length || 0 });
