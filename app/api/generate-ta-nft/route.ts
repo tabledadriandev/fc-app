@@ -253,11 +253,14 @@ THESE ARE NOT SUGGESTIONS - THEY ARE ABSOLUTE REQUIREMENTS THAT CANNOT BE VIOLAT
             headers: {
               'Accept': 'image/*',
               'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
             }
           },
           {
             headers: {
               'Accept': 'image/jpeg,image/png,image/webp,image/*',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
             }
           }
         ];
