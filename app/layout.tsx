@@ -10,14 +10,22 @@ export const metadata: Metadata = {
   other: {
     'Content-Security-Policy': [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://explorer-api.walletconnect.com https://walletconnect.com https://*.walletconnect.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://explorer-api.walletconnect.com https://walletconnect.com https://*.walletconnect.com https://client.warpcast.com https://client.farcaster.xyz https://farcaster.xyz https://warpcast.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://client.warpcast.com https://client.farcaster.xyz",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: https: blob:",
-      "connect-src 'self' https: wss: https://explorer-api.walletconnect.com https://walletconnect.com https://*.walletconnect.com https://api.replicate.com https://image.pollinations.ai https://mainnet.base.org https://api.thegraph.com",
-      "frame-src 'self' https://walletconnect.com https://*.walletconnect.com",
+      "img-src 'self' data: https: blob: https://client.warpcast.com https://client.farcaster.xyz",
+      "connect-src 'self' https: wss: https://explorer-api.walletconnect.com https://explorer-api.walletconnect.com/v3/wallets https://walletconnect.com https://*.walletconnect.com https://client.warpcast.com https://client.farcaster.xyz https://api.replicate.com https://image.pollinations.ai https://mainnet.base.org https://api.thegraph.com https://farcaster.xyz https://warpcast.com https://privy.farcaster.xyz https://privy.warpcast.com https://auth.privy.io https://*.rpc.privy.systems https://cloudflareinsights.com",
+      "frame-src 'self' https://walletconnect.com https://*.walletconnect.com https://client.warpcast.com https://client.farcaster.xyz https://farcaster.xyz https://warpcast.com",
+      "frame-ancestors 'self' https://client.warpcast.com https://client.farcaster.xyz",
       "worker-src 'self' blob:",
-    ].join('; ')
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; '),
+    'X-Frame-Options': 'SAMEORIGIN',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
   },
 }
 

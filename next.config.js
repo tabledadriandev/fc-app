@@ -1,20 +1,37 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false, // DISABLED to prevent React infinite loops
+  reactStrictMode: true, // RE-ENABLED with proper error boundaries
   images: {
     domains: [
+      // Core NFT/IPFS domains
       'gateway.pinata.cloud',
       'ipfs.io',
       'imagedelivery.net',
+      
+      // Farcaster ecosystem
       'client.warpcast.com',
+      'client.farcaster.xyz',
       'farcaster.xyz',
       'warpcast.com',
+      
+      // WalletConnect ecosystem
       'explorer-api.walletconnect.com',
+      'walletconnect.com',
+      'www.walletlink.org',
+      'registry.walletconnect.com',
+      
+      // Privy/Auth services
       'privy.farcaster.xyz',
       'privy.warpcast.com',
       'auth.privy.io',
+      
+      // Analytics and monitoring
       'cloudflareinsights.com',
-      'www.walletlink.org'
+      
+      // AI/ML services
+      'api.replicate.com',
+      'replicate.com',
+      'image.pollinations.ai'
     ],
   },
   env: {
@@ -30,23 +47,7 @@ const nextConfig = {
       },
     ]
   },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: "connect-src 'self' https://farcaster.xyz https://client.farcaster.xyz https://warpcast.com https://client.warpcast.com https://wrpcd.net https://*.wrpcd.net https://privy.farcaster.xyz https://privy.warpcast.com https://auth.privy.io https://*.rpc.privy.systems https://cloudflareinsights.com https://explorer-api.walletconnect.com https://*.walletconnect.com https://*.replicate.com https://image.pollinations.ai https://*.pollinations.ai https://www.walletlink.org wss://www.walletlink.org"
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'ALLOWALL'
-          }
-        ],
-      },
-    ]
-  },
+  // REMOVED conflicting headers - now handled by middleware.ts for unified CSP
   webpack: (config) => {
     // Stub out optional React Native / logging dependencies that are only
     // required by MetaMask / WalletConnect in certain environments.
@@ -54,6 +55,13 @@ const nextConfig = {
     // browser bundle functional.
     config.resolve.alias['@react-native-async-storage/async-storage'] = false
     config.resolve.alias['pino-pretty'] = false
+    
+    // Add webpack Bundle Analyzer for debugging
+    if (process.env.NODE_ENV === 'development' && process.env.ANALYZE === 'true') {
+      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer')
+      config.plugins.push(new BundleAnalyzerPlugin())
+    }
+    
     return config
   },
 }
