@@ -13,6 +13,8 @@ export default function TANFTMinterPro() {
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   
+  // Client-side only state to prevent hydration mismatches
+  const [isClient, setIsClient] = useState(false);
   const [step, setStep] = useState<Step>("connect");
   const [userData, setUserData] = useState<any>(null);
   const [nftImageUrl, setNftImageUrl] = useState<string | null>(null);
@@ -23,8 +25,14 @@ export default function TANFTMinterPro() {
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [currentPhrase, setCurrentPhrase] = useState<string>("");
 
-  // Simple NFT generation function without useCallback to avoid circular dependencies
+  // Set client flag to prevent hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Fixed NFT generation function with proper error handling and cleanup
   const generateNFT = async (pfpUrl: string, username: string, casts: any[] = []) => {
+    // Prevent duplicate calls
     if (loading) {
       console.log('NFT generation already in progress, ignoring duplicate call');
       return;
@@ -36,79 +44,53 @@ export default function TANFTMinterPro() {
       return;
     }
 
-    // ALWAYS show the progress bar immediately - NO EXCEPTIONS!
     setLoading(true);
     setError("");
     setStep("generate");
     
-    // Force immediate progress bar display with guaranteed update
-    setGenerationProgress(1);
-    setCurrentPhrase("Starting NFT generation...");
-    
-    // Fun dev phrases for progress - GUARANTEED TO SHOW!
-    const phrases = [
-      "Initializing quantum NFT generator...",
-      "Downloading your PFP from the blockchain...",
-      "Analyzing your DeSci vibes...",
-      "Feeding data to the AI hamster wheel...",
-      "Converting pixels to pure art...",
-      "Applying scientific aesthetic filters...",
-      "Summoning Studio Ghibli spirits...",
-      "Rendering your DeSci researcher portrait...",
-      "Adding premium lab attire...",
-      "Polishing the final masterpiece...",
-      "Almost there, just buffing the pixels...",
-    ];
-    
-    let currentPhraseIndex = 0;
+    // Progress tracking with proper cleanup
     let progressInterval: NodeJS.Timeout | null = null;
-    
-    // Force immediate first update with microtask to ensure it shows
-    Promise.resolve().then(() => {
-      setCurrentPhrase(phrases[0]);
-      setGenerationProgress(9);
-      currentPhraseIndex = 1;
-    });
-    
-    const updateProgress = () => {
-      if (currentPhraseIndex < phrases.length) {
-        const progress = Math.min((currentPhraseIndex + 1) * (100 / phrases.length), 95);
-        setCurrentPhrase(phrases[currentPhraseIndex]);
-        setGenerationProgress(progress);
-        currentPhraseIndex++;
-      }
-    };
-    
-    // Start progress updates IMMEDIATELY - THIS WILL ALWAYS SHOW!
-    progressInterval = setInterval(() => {
-      if (currentPhraseIndex < phrases.length) {
-        updateProgress();
-      } else {
-        if (progressInterval) {
-          clearInterval(progressInterval);
-          progressInterval = null;
-        }
-      }
-    }, 2000); // Update every 2 seconds
-    
-    // Always complete the progress bar for the full experience
-    const completeProgress = () => {
-      if (progressInterval) {
-        clearInterval(progressInterval);
-        progressInterval = null;
-      }
-      setGenerationProgress(100);
-      setCurrentPhrase("Generation complete! 🎨");
-      
-      // Don't reset immediately - let user see completion
-      setTimeout(() => {
-        setGenerationProgress(0);
-        setCurrentPhrase("");
-      }, 4000);
-    };
+    let timeoutId: NodeJS.Timeout | null = null;
     
     try {
-      // Validate data before sending
+      // Initialize progress
+      setGenerationProgress(1);
+      setCurrentPhrase("Starting NFT generation...");
+      
+      const phrases = [
+        "Initializing quantum NFT generator...",
+        "Downloading your PFP from the blockchain...",
+        "Analyzing your DeSci vibes...",
+        "Feeding data to the AI hamster wheel...",
+        "Converting pixels to pure art...",
+        "Applying scientific aesthetic filters...",
+        "Summoning Studio Ghibli spirits...",
+        "Rendering your DeSci researcher portrait...",
+        "Adding premium lab attire...",
+        "Polishing the final masterpiece...",
+      ];
+      
+      let currentPhraseIndex = 0;
+      
+      // Progress update function
+      const updateProgress = () => {
+        if (currentPhraseIndex < phrases.length && loading) {
+          const progress = Math.min((currentPhraseIndex + 1) * (100 / phrases.length), 95);
+          setCurrentPhrase(phrases[currentPhraseIndex]);
+          setGenerationProgress(progress);
+          currentPhraseIndex++;
+        }
+      };
+      
+      // Start progress updates
+      progressInterval = setInterval(() => {
+        updateProgress();
+      }, 2000);
+      
+      // Immediate first update
+      setTimeout(() => updateProgress(), 100);
+
+      // Validate and send request
       const requestData = {
         pfpUrl: String(pfpUrl || ''),
         username: String(username || ''),
@@ -129,7 +111,7 @@ export default function TANFTMinterPro() {
 
       console.log('NFT generation response status:', res.status);
 
-      // Handle non-JSON responses
+      // Handle response
       let data;
       const contentType = res.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -140,15 +122,15 @@ export default function TANFTMinterPro() {
         throw new Error('Server returned non-JSON response');
       }
 
-      // Complete the progress bar
-      completeProgress();
+      // Complete progress
+      setGenerationProgress(100);
+      setCurrentPhrase("Generation complete! 🎨");
 
       if (!res.ok) {
         const errorMsg = data?.details || data?.message || data?.error || `NFT generation failed with status ${res.status}`;
         console.error('NFT generation API error:', { status: res.status, error: data });
         
-        // Show completion then error
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           setError(errorMsg);
           setStep("connect");
         }, 2000);
@@ -161,28 +143,34 @@ export default function TANFTMinterPro() {
 
       setNftImageUrl(data.nftImage);
       
-      // Show success then go to preview
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         setStep("preview");
       }, 2000);
       
     } catch (err) {
       console.error('Error generating NFT:', err);
       
-      // Always complete the progress bar first
-      completeProgress();
+      setGenerationProgress(100);
+      setCurrentPhrase("Generation failed");
       
-      // Show error after completion
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         const errorMessage = err instanceof Error ? err.message : 'NFT generation failed';
         setError(errorMessage);
         setStep("connect");
       }, 2000);
     } finally {
-      if (progressInterval) {
-        clearInterval(progressInterval);
-        progressInterval = null;
-      }
+      // Cleanup timers
+      if (progressInterval) clearInterval(progressInterval);
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      // Reset progress after delay
+      setTimeout(() => {
+        if (loading) {
+          setGenerationProgress(0);
+          setCurrentPhrase("");
+        }
+      }, 4000);
+      
       setLoading(false);
     }
   };
@@ -267,111 +255,102 @@ export default function TANFTMinterPro() {
     }
   };
 
-  // Initialize Farcaster SDK and auto-connect wallet
+  // Fixed initialization with proper hydration handling and cleanup
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
     
     const initializeSDK = async () => {
+      if (!mounted) return;
+      
       try {
+        // Wait for SDK to be ready
         await sdk.actions.ready();
         
         if (!mounted) return;
         
-        // Try to get FID from Farcaster SDK context first (most reliable)
-        try {
-          // Try different ways to access context
-          let context: any = null;
+        // Initialize with delay to prevent hydration issues
+        const initWithDelay = async () => {
+          if (!mounted) return;
           
-          // Method 1: Direct access
           try {
-            context = await sdk.context;
-          } catch (e) {
-            // Method 2: Check if it's a property
-            context = (sdk as any).context;
-          }
-          
-          // Method 3: Check window.frame.sdk
-          if (!context && typeof window !== 'undefined' && (window as any).frame?.sdk) {
+            // Get context with error handling
+            let context: any = null;
+            
             try {
-              context = await (window as any).frame.sdk.context;
+              context = await sdk.context;
             } catch (e) {
-              context = (window as any).frame.sdk.context;
+              context = (sdk as any).context;
             }
-          }
-          
-          console.log('Farcaster context:', context);
-          
-          if (context?.user?.fid && mounted) {
-            const fid = context.user.fid;
-            console.log('Got FID from Farcaster context:', fid);
-            // Fetch user data by FID (most reliable method) - NO AUTO NFT GENERATION
-            if (!userData) {
-              fetchUserData(fid.toString(), false, false); // Don't trigger NFT generation automatically
-            }
-            return; // Success, exit early
-          } else {
-            console.log('No FID in context, context.user:', context?.user);
-          }
-        } catch (contextErr) {
-          console.error('Error getting FID from context:', contextErr);
-        }
-        
-        if (!mounted) return;
-        
-        // Fallback: Get wallet from Ethereum provider
-        try {
-          const ethereumProvider = await sdk.wallet.getEthereumProvider();
-          
-          if (ethereumProvider && mounted) {
-            // Provider is available - try to get accounts
-            try {
-              // Get accounts without requesting (if already connected)
-              let accounts: string[] | null = null;
+            
+            if (!context && typeof window !== 'undefined' && (window as any).frame?.sdk) {
               try {
-                accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
-              } catch (err) {
-                // If eth_accounts fails, try requesting
-                accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' }) as string[];
+                context = await (window as any).frame.sdk.context;
+              } catch (e) {
+                context = (window as any).frame.sdk.context;
               }
-              
-              if (accounts && accounts.length > 0 && accounts[0] && mounted) {
-                const walletAddress = accounts[0];
-                console.log('Auto-detected wallet from Farcaster:', walletAddress);
-                
-                // If wallet is connected via wagmi, use that address
-                if (isConnected && address && address.toLowerCase() === walletAddress.toLowerCase()) {
-                  // Already connected, just fetch user data if we don't have it - NO AUTO NFT GENERATION
-                  if (!userData) {
-                    fetchUserData(walletAddress, false, false); // Don't trigger NFT generation automatically
-                  }
-                } else if (!isConnected && mounted) {
-                  // Not connected via wagmi yet, but we have Farcaster wallet
-                  // Fetch user data directly using Farcaster wallet address - NO AUTO NFT GENERATION
-                  fetchUserData(walletAddress, false, false); // Don't trigger NFT generation automatically
-                }
-              }
-            } catch (connectErr) {
-              console.log('Auto-connect via Farcaster wallet failed:', connectErr);
             }
+            
+            console.log('Farcaster context:', context);
+            
+            if (context?.user?.fid && mounted) {
+              const fid = context.user.fid;
+              console.log('Got FID from Farcaster context:', fid);
+              
+              // Only fetch if we don't have user data and component is still mounted
+              if (!userData && mounted) {
+                fetchUserData(fid.toString(), false, false);
+              }
+              return;
+            }
+            
+            // Fallback: Check wallet provider
+            if (mounted) {
+              try {
+                const ethereumProvider = await sdk.wallet.getEthereumProvider();
+                
+                if (ethereumProvider && mounted) {
+                  try {
+                    const accounts = await ethereumProvider.request({ method: 'eth_accounts' }) as string[];
+                    
+                    if (accounts && accounts.length > 0 && accounts[0] && mounted) {
+                      const walletAddress = accounts[0];
+                      console.log('Auto-detected wallet from Farcaster:', walletAddress);
+                      
+                      // Only fetch if we don't have user data and component is still mounted
+                      if (!userData && mounted) {
+                        fetchUserData(walletAddress, false, false);
+                      }
+                    }
+                  } catch (connectErr) {
+                    console.log('Auto-connect via Farcaster wallet failed:', connectErr);
+                  }
+                }
+              } catch (providerErr) {
+                console.log('Farcaster wallet provider not available:', providerErr);
+              }
+            }
+          } catch (err) {
+            console.error('Error during SDK initialization:', err);
           }
-        } catch (providerErr) {
-          console.log('Farcaster wallet provider not available:', providerErr);
-        }
+        };
+        
+        // Use longer delay to prevent hydration mismatches
+        timeoutId = setTimeout(initWithDelay, 500);
+        
       } catch (err) {
         console.error('Failed to initialize Farcaster SDK:', err);
       }
     };
     
-    // Use setTimeout to avoid state updates during render
-    const timeoutId = setTimeout(() => {
-      initializeSDK();
-    }, 100); // Increased timeout to avoid render conflicts
+    // Start initialization with proper delay
+    timeoutId = setTimeout(initializeSDK, 100);
     
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isConnected, address, userData]); // Removed fetchUserData to prevent infinite loop
+  }, []); // Empty dependency array to prevent infinite loops
 
   const mintNFT = async () => {
     if (loading) {
@@ -877,10 +856,21 @@ export default function TANFTMinterPro() {
     fetchUserData(usernameInput.trim(), true, true); // Trigger NFT generation for manual username input
   };
 
+  // Show loading while hydrating to prevent hydration mismatches
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-white p-4 sm:p-6 md:p-8 flex items-center justify-center">
+        <div className="border-4 border-black p-8 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <div className="text-xl font-black text-center">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white p-4 sm:p-6 md:p-8">
       <div className="max-w-2xl mx-auto">
-        
+         
         {/* Header */}
         <div className="border-4 border-black p-4 sm:p-6 mb-6 sm:mb-8">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-2">TABLE D'ADRIAN</h1>
